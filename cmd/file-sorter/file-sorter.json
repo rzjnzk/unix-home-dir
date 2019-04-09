@@ -1,0 +1,19 @@
+{
+    "rules":
+    {
+        "some name":
+        {
+            "file_types":
+            [
+                "png",
+                "PNG"
+            ],
+            "source_dirs":
+            [
+                "/",
+                "/"
+            ],
+            "target_dir": "/"
+        }
+    }
+}
