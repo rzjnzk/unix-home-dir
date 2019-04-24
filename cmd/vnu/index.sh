@@ -15,7 +15,7 @@
 
 function func_main
 {
-    java -jar ~/vnu/dist/vnu.jar --also-check-css *.css *.html
+    java -jar ${absolute_path}/dist/vnu.jar --also-check-css *.css *.html
 }
 
 # -----------------
