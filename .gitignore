@@ -4,12 +4,14 @@
 " root files
 " ----------
 
+!README.md
 !.bashrc
 !.profile
 !.bash_profile
 !.bash_logout
 !.vimrc
 !setup.sh
+!dir-prefixes.sh.example
 
 " directories
 " -----------

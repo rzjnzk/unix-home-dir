@@ -1,0 +1,3 @@
+echo "Executing '~/dir-prefixes.sh' ..."
+DIR_PREFIX_DEV="${home}/dev/repos"
+DIR_PREFIX_WEBSUB="${HOME}/dev/repos/${STUDENT_ID}"
