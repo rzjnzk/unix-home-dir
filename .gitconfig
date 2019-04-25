@@ -8,3 +8,6 @@
 	smudge = git-lfs smudge -- %f
 [credential]
 	helper = wincred
+[hub]
+	username = rzjnzk
+	oauthtoken = 55c8e0412ba4c75eb191e3b805fc14172de784a7

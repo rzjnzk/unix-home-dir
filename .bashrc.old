@@ -1,0 +1,61 @@
+thout escaping    printf "%s" "TEXT HERE"
+ # | tr -d '\n'    this removes \n chars
+
+ # function atom
+ # {
+ #         ~/Desktop/atom/atom ~/Desktop/
+ # }
+
+ # function PS1_FUNCTION
+ # {
+ #     # TODO: printf one new line when the previous output ended with a newline, print two newlines otherwise
+ #     printf "\n\n"
+ #
+ #     # line 1, user info
+ #     printf "\e[7m "
+ #
+ #     if [ ! -z ${SSH_CLIENT}]
+ #     then
+ #         printf "${SSH_CLIENT} \xe2\x87\x94 "
+ #     fi
+ #
+ #     printf "${debian_chroot:+($debian_chroot)}"
+ #     printf "$(whoami)@$(hostname) " # \u@\H
+ #     printf "\e[0m "
+ #     printf "\e[7m"
+ #     # TODO: prepend shell version
+ #     printf " $(ps -p $$ -oargs=) "
+ #     printf "\e[0m "
+ #     printf "\e[7m $(date +%H:%M:%S) \e[0m "
+ #     printf "\e[7m $(date +%d/%m/%Y) \e[0m >"
+ #     printf "\n"
+ #
+ #     # line 2, working dir
+ #
+ #     printf "\033[01;34m\xf0\x9f\x96\xb4  $(pwd)\033[00m"
+ #     printf "\n"
+ #
+ #     # line 3 (potentially)
+ #     # repository information
+ #
+ #     # if the current dir is a repository
+ #     _git_branch_name="$(git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/')"
+ #     _git_origin_name="$(git config --get remote.origin.url)"
+ #
+ #     if [ ! -z ${_git_branch_name} ]
+ #     then
+ #         printf "\e[96m\xf0\x9f\x96\xa7  ${_git_origin_name}\e[0m\n"
+ #         printf "\e[96m\xe2\x8e\x87  ${_git_branch_name}\e[0m\n"
+ #         # TODO: \x01\xF5\xA7
+ #     fi
+ #
+ #     printf "\n"
+ #
+ #     # line 4 (potentially 5)
+ #     # command entry line
+ #
+ #     printf "\e[34m\$\e[0m "
+ # }
+ #
+ # PS1="\$(PS1_FUNCTION)"
+i
