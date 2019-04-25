@@ -1,6 +1,6 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
-# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
-# for examples
+# executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files
+#  in the package bash-doc for examples
 
 # return if not running interactively
 [ $1 != "*i*" ] && return
@@ -27,8 +27,8 @@ HISTCONTROL=ignoreboth
 # append to the history file, don't overwrite it
 shopt -s histappend
 
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
+# check the window size after each command and
+# update the values of LINES and COLUMNS if necessary.
 shopt -s checkwinsize
 
 # enable programmable completion features (you don't need to enable
@@ -47,5 +47,4 @@ then
 fi
 
 # finishing indication
-printf "\n"
 printf "Finishing execution of \"${HOME}/.bashrc\"\n\n"
