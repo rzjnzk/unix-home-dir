@@ -1,19 +1,29 @@
 *
 !.gitignore
 
-!cmd/
-!cmd/*
-!cmd/**
+" root files
+" ----------
+
 !.bashrc
 !.profile
 !.bash_profile
 !.bash_logout
 !.vimrc
-!.gitconfig
+!setup.sh
+
+" directories
+" -----------
+
+!cmd/
+!cmd/*
+!cmd/**
+
+!.gitconfig/
 !.gitconfig/*
 !.gitconfig/**
-!.subversion
+
+!.subversion/
 !.subversion/*
 !.subversion/**
+" ignore dir containing plaintext password store
 .subversion/auth/svn.simple/*
-!setup.sh

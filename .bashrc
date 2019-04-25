@@ -174,15 +174,16 @@ printf "\n"
 export PATH=${PATH} \
 	# metabox laptop : wsl ubuntu
 	# TODO: remove hardcoded home dir
-	:"${HOME}/uni/nand2tetris/tools" \
+	":${HOME}/uni/nand2tetris/tools" \
 	# CAT suite : redhat linux
-	:"/usr/local/nand2tetris/tools" \
-	:"/usr/java/jdk1.8.0_181-amd64/bin" #\
+	":/usr/local/nand2tetris/tools" \
+	":/usr/java/jdk1.8.0_181-amd64/bin" \
 	# homebrew
-	#:"/home/linuxbrew/.linuxbrew/bin"
+	":/home/linuxbrew/.linuxbrew/bin"
 
-#export MANPATH="/home/linuxbrew/.linuxbrew/share/man:${MANPATH}"
-#export INFOPATH="/home/linuxbrew/.linuxbrew/share/info:${INFOPATH}"
+# homebrew
+export MANPATH="/home/linuxbrew/.linuxbrew/share/man:${MANPATH}"
+export INFOPATH="/home/linuxbrew/.linuxbrew/share/info:${INFOPATH}"
 
 chmod 644 "${HOME}/uni/nand2tetris/tools/*.bat"
 chmod 755 "${HOME}/uni/nand2tetris/tools/*.sh"
