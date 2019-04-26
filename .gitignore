@@ -1,10 +1,11 @@
 *
 !.gitignore
+!.gitattributes
+!README.md
 
 " root files
 " ----------
 
-!README.md
 !.bashrc
 !.bashrc.old
 !.profile

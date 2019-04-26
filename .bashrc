@@ -3,7 +3,7 @@
 #  in the package bash-doc for examples
 
 # return if not running interactively
-[ $1 != "*i*" ] && return
+[ "${1}" != "*i*" ] && return
 
 # beginning indication
 printf "Beginning execution of \"${HOME}/.bashrc\"\n\n"
