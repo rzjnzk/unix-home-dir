@@ -4,14 +4,19 @@
 # see /usr/share/doc/bash/examples/startup-files for examples.
 # the files are located in the bash-doc package.
 
+# --------------------
 # beginning indication
+# --------------------
+
 printf "Beginning execution of \"${HOME}/.profile\"\n\n"
 
+# -------------------------------------------
 # print shell version and license information
 # -------------------------------------------
 
 printf "$(${SHELL} --version)\n\n"
 
+# ---------------
 # set permissions
 # ---------------
 
@@ -20,11 +25,18 @@ chmod 600 "${HOME}/.ssh/config"
 chmod 644 "${HOME}/uni/nand2tetris/tools/*.bat"
 chmod 755 "${HOME}/uni/nand2tetris/tools/*.sh"
 
+# -------------------------
+# set environment variables
+# -------------------------
+
 # set the display for x-server use with non-gui environments such as WSL
-# ----------------------------------------------------------------------
-
 export DISPLAY=:0
+# set the default text editor
+export EDITOR="vim"
+export VISUAL="${EDITOR}"
+export GIT_EDITOR="${EDITOR}"
 
+# -------------------
 # set prompt variable
 # -------------------
 
@@ -38,9 +50,9 @@ fi
 # ref: https://stackoverflow.com/questions/3722524/testing-for-color-support-in-linux-shell-scripts
 if [ -x /usr/bin/tput ] && tput setaf 1 > /dev/null 2>&1
 then
-	# assume color support is  compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
+    # assume color support is  compliant with Ecma-48
+    # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+    # a case would tend to support setf rather than setaf.)
 
     PS1_FUNCTION()
     {
@@ -127,32 +139,34 @@ in
         ;;
 esac
 
+# ---------------------------------
 # source shell-specific *rc scripts
 # ---------------------------------
 
 # if running bash, source the users .bashrc
 [ -n "${BASH_VERSION}" ] && [ -f "${HOME}/.bashrc" ] && . "${HOME}/.bashrc"
 
+# ---------------------------------------------------------------
 # set user script sourcing functions for '${HOME}/cmd/*/index.sh'
 # ---------------------------------------------------------------
 
 # set dir prefix shell variables
 . "${HOME}/dir-prefixes.sh"
 
-printf "\n"
 printf "Looking for ${HOME}/cmd/*/index.sh\n"
 printf "Function \"*\" executes subsequent script, for ...\n"
 printf "\n"
 
-for _dir in $(cd "${HOME}/cmd/" && echo *)
+for _dir in $(cd "${HOME}/cmd/" && echo ./* | sed -E "s/\.\///g")
 do
     if [ -d "${HOME}/cmd/${_dir}" ]
     then
-        eval "function ${_dir} { . \"${HOME}/cmd/${_dir}/index.sh\" ; }" \
+        eval "${_dir}() { . \"${HOME}/cmd/${_dir}/index.sh\" ; }" \
             && printf "${_dir}\n"
     fi
 done
 
+# ----------------------
 # export *PATH variables
 # ----------------------
 
@@ -160,14 +174,14 @@ export PATH="${PATH}" \
     # include user's private bin if it exists
     "$([ -d "${HOME}/bin" ] && printf ":${HOME}/bin")" \
     "$([ -d "${HOME}/.local/bin" ] && printf ":${HOME}/.local/bin")" \
-	# metabox laptop : wsl ubuntu
-	":${HOME}/uni/nand2tetris/tools" \
-	# CAT suite : redhat linux
-	# note: CAT suite: /usr/local/nand2tetris/tools:/usr/java/jdk1.8.0_181-amd64/bin
-	":/usr/local/nand2tetris/tools" \
-	":/usr/java/jdk1.8.0_181-amd64/bin" \
-	# homebrew/linuxbrew
-	":/home/linuxbrew/.linuxbrew/bin"
+    # metabox laptop : wsl ubuntu
+    ":${HOME}/uni/nand2tetris/tools" \
+    # CAT suite : redhat linux
+    # note: CAT suite: /usr/local/nand2tetris/tools:/usr/java/jdk1.8.0_181-amd64/bin
+    ":/usr/local/nand2tetris/tools" \
+    ":/usr/java/jdk1.8.0_181-amd64/bin" \
+    # homebrew/linuxbrew
+    ":/home/linuxbrew/.linuxbrew/bin"
 
 export MANPATH="${MANPATH}" \
     # homebrew/linuxbrew
@@ -177,6 +191,7 @@ export INFOPATH="${INFOPATH}" \
     # homebrew/linuxbrew
     ":/home/linuxbrew/.linuxbrew/share/info"
 
+# --------------------
 # finishing indication
 # --------------------
 

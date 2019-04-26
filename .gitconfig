@@ -6,3 +6,8 @@
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
+[core]
+	editor = vim
+	excludesfile = /home/rzjnzk/.gitignore_global
+[commit]
+	template = /home/rzjnzk/git-commit-template.txt

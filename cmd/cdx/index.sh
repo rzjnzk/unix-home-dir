@@ -26,6 +26,9 @@ function func_main
         "adds")
             cd "${DIR_PREFIX_DEV}/a1731824/2019/s1/adds/"
             ;;
+	"cs")
+	    cd "${DIR_PREFIX_DEV}/a1731824/2019/s1/cs/"
+	    ;;
     esac
 }
 
