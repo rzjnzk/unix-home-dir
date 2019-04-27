@@ -15,8 +15,10 @@ syntax enable
 set number
 
 " soft wrap lines  at chars specified in `breakat` rather than any char
-set breakat " ^I!@*-+;:,./?"
-set linebreak on
+" NOTE: the order of these commands may be important, ref: https://www.unix.com/unix-for-advanced-and-expert-users/130631-breakat-option-vim.html
+set linebreak
+" " Enforce default breakat values
+" set breakat " ^I!@*-+;:,./?"
 
 " show previously entered command in bottom bar
 set showcmd          
