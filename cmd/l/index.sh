@@ -37,26 +37,25 @@ _main ()
     for _dir in ${@}
     do
         cd "${_dir}"
-        printf "$(pwd):\n\n"
 
-        _output="${_output}NAME SIZE PERMISSIONS MODIFIED\n"
-        _output="${_output}---- ---- ----------- --------\n"
+        _dir_output="${_dir_output}NAME SIZE PERMISSIONS MODIFIED\n"
+        _dir_output="${_dir_output}---- ---- ----------- --------\n"
 
-        _dir_contents="$(ls -all --format=single-column --color=none)"
+        _dir_output="$(ls -all --format=single-column --color=none)"
 
         for _item in ${_dir_contents}
         do
-            _output="${_output}$(stat --dereference --printf="%n %s %A/%a " "${_item}")"
-            _output="${_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")\n"
+            _dir_output="${_dir_output}$(stat --dereference --printf="%n %s %A/%a " "${_item}")"
+            _dir_output="${_dir_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")\n"
         done
 
-        printf "\n"
+        _output="${_output}$(pwd):\n\n$(printf "${_dir_output}" | column -t)\n"
 
     done
 
     unset IFS
 
-    printf "$(printf "${_output}" | column -t)"
+    printf "${_output}"
 
     cd ${_current_dir}
 }
