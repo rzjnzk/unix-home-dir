@@ -14,18 +14,26 @@ syntax enable
 " show line numbers
 set number
 
+" soft wrap lines  at chars specified in `breakat` rather than any char
+set breakat " ^I!@*-+;:,./?"
+set linebreak on
+
 " show previously entered command in bottom bar
 set showcmd          
 
-set wildmenu            " visual autocomplete for command menu
+" visual autocomplete for command menu
+set wildmenu
 
-set lazyredraw          " redraw only when we need to. Vim loves to redraw the screen during things it probably doesn't need to—like in the middle of macros. This tells Vim not to bother redrawing during these scenarios, leading to faster macros.
+" redraw only when we need to. Vim loves to redraw the screen during things it probably doesn't need to—like in the middle of macros. This tells Vim not to bother redrawing during these scenarios, leading to faster macros.
+set lazyredraw
 
-set showmatch           " highlight matching [{()}]
+" highlight matching [{()}]
+set showmatch
 
-
-set incsearch           " search as characters are entered
-set hlsearch            " highlight matches
+" search as characters are entered
+set incsearch
+" highlight matches
+set hlsearch
 
 " turn off search highlight
 "nnoremap <leader><space> :nohlsearch<CR>
@@ -34,16 +42,20 @@ set hlsearch            " highlight matches
 " ?
 filetype plugin indent on
 
+" ------------
 " pathogem.vim
 " ------------
 
 execute pathogen#infect()
 
-" NERD Tree (https://github.com/scrooloose/nerdtree)
+" NERDTree (https://github.com/scrooloose/nerdtree)
 " --------------------------------------------------
 
 " open a NERDTree automatically when vim starts up if no files were specified
 autocmd vimenter * NERDTree
+
+" show hidden files in NERDTree
+let NERDTreeShowHidden=1
 
 " " open a NERDTree automatically when vim starts up if no files were specified
 " autocmd StdinReadPre * let s:std_in=1
@@ -52,5 +64,4 @@ autocmd vimenter * NERDTree
 " " open NERDTree automatically when vim starts up on opening a directory
 " autocmd StdinReadPre * let s:std_in=1
 " autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | exe 'NERDTree' argv()[0] | wincmd p | ene | exe 'cd '.argv()[0] | endif
-
 

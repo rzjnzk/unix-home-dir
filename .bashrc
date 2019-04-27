@@ -1,12 +1,19 @@
 # executed by bash(1) for non-login shells.
 # see /usr/share/doc/bash/examples/startup-files
-#  in the package bash-doc for examples
+# in the package bash-doc for examples
 
 # return if not running interactively
 [ "${1}" != "*i*" ] && return
 
+# --------------------
 # beginning indication
+# --------------------
+
 printf "Beginning execution of \"${HOME}/.bashrc\"\n\n"
+
+# -----
+# misc.
+# -----
 
 #set -E -o functrace
 #trap "echo ${LINENO} ${BASH_COMMAND}" ERR
@@ -15,6 +22,10 @@ printf "Beginning execution of \"${HOME}/.bashrc\"\n\n"
 # TODO: check if this is portable, if it is, move it to ~/.profile
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
+# -------------------
+# set shell variables
+# -------------------
+
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
 # TODO: check if this is portable, if it is, move it to ~/.profile
 HISTSIZE=1000
@@ -22,7 +33,12 @@ HISTFILESIZE=2000
 
 # don't put duplicate lines or lines starting with space in the history.
 # see bash(1) for more options
+# TODO: check if this is portable, if it is, move it to ~/.profile
 HISTCONTROL=ignoreboth
+
+# ---------------------
+# SHell OPTions (shopt)
+# ---------------------
 
 # append to the history file, don't overwrite it
 shopt -s histappend
@@ -30,6 +46,9 @@ shopt -s histappend
 # check the window size after each command and
 # update the values of LINES and COLUMNS if necessary.
 shopt -s checkwinsize
+
+# make glob include dot files
+shopt -s dotglob
 
 # enable programmable completion features (you don't need to enable
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
@@ -46,5 +65,8 @@ then
     fi
 fi
 
+# --------------------
 # finishing indication
+# --------------------
+
 printf "Finishing execution of \"${HOME}/.bashrc\"\n\n"
