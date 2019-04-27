@@ -1,0 +1,19 @@
+# make man print to console
+# -------------------------
+
+# # TODO: may cause the terminal to hang
+# function man
+# {
+#     man -P cat ${@}
+# }
+# 
+# 
+
+# <description>
+# ---------
+
+# the default umask is set in /etc/profile; for setting the umask
+# for ssh logins, install and configure the libpam-umask package.
+# only the current user can read write and execute files and dirs created by them
+# TODO: may stall here, possibly dependant on users permissions
+#umask 002

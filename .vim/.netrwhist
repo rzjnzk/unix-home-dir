@@ -1,0 +1,7 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhist_cnt =5
+let g:netrw_dirhist_1='/tmp/SDL2-2.0.9/i686-w64-mingw32/lib/cmake/SDL2'
+let g:netrw_dirhist_2='/mnt/e/d/User/development/a1731824/2019/s1/adds/assignment1'
+let g:netrw_dirhist_3='/home/rzjnzk/scripts'
+let g:netrw_dirhist_4='/mnt/e/d/User/development/website-backyarkmarket-com-au/_removed'
+let g:netrw_dirhist_5='/mnt/e/d/User/development/a1731824/2019/s1/cs/assignment1'

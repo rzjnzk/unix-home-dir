@@ -118,6 +118,10 @@ then
             printf "\e[96m\xe2\x8e\x87  ${_git_branch_name}\e[0m\n"
             # TODO: \x01\xF5\xA7
         fi
+        
+        # update the values of LINES and COLUMNS regardless of whether the terminal has been physically resized
+        # ref: https://www.mankier.com/1/resize
+        printf "$(resize > /dev/null 2>&1)"
 
         # TODO: support svn and other remotes
         # TODO: colourise user@hostname and neighbouring sections
@@ -128,7 +132,7 @@ then
 
     PS1="\$(PS1_FUNCTION)\n\n\[\e[34m\]$\[\e[0m\] "
 else
-    PS1="\n${debian_chroot:+($debian_chroot)}\u@\h:\n\w\\n\$ "
+    PS1="\n${debian_chroot:+($debian_chroot)}\u@\h:\n\w\$(resize > /dev/null 2>&1)\n\n$ "
 fi
 
 # if this is an xterm set the title to user@host:dir

@@ -9,6 +9,7 @@
 !.bashrc
 !.bashrc.old
 !.profile
+!.profile.old
 !.bash_profile
 !.bash_logout
 !.vimrc
@@ -30,3 +31,7 @@
 !.subversion/**
 " ignore dir containing plaintext password store
 .subversion/auth/svn.simple/*
+
+!.vim/
+!.vim/*
+!.vim/**

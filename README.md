@@ -1,4 +1,8 @@
 # shell-home-dir
 
-# Personal References
-https://askubuntu.com/questions/279285/why-profile-and-not-bashrc-appends-bin-to-path
+# Installation
+```sh
+git clone https://github.com/rzjnzk/shell-home-dir` /tmp/shell-home-dir && \
+    mv -v --backup=numbered /tmp/shell-home-dir/* ~ && \
+    rm -r /tmp/shell-home-dir
+```
