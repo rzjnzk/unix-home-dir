@@ -31,6 +31,14 @@
 !.subversion/**
 " ignore dir containing plaintext password store
 .subversion/auth/svn.simple/*
+
 !.vim/
-.vim/*
+!.vim/*
 !.vim/**
+
+!.emacs.d/
+!.emacs.d/*
+!.emacs.d/**
+.emacs.d/auto-save-list/
+.emacs.d/auto-save-list/*
+.emacs.d/auto-save-list/**
