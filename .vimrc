@@ -45,13 +45,13 @@ set hlsearch
 filetype plugin indent on
 
 " ------------
-" pathogem.vim
+" pathogen.vim
 " ------------
 
 execute pathogen#infect()
 
-" NERDTree (https://github.com/scrooloose/nerdtree)
-" --------------------------------------------------
+" NERDTree (https://github.com/scrooloose/nerdtree) (pathogen)
+" ------------------------------------------------------------
 
 " open a NERDTree automatically when vim starts up if no files were specified
 autocmd vimenter * NERDTree
@@ -66,4 +66,15 @@ let NERDTreeShowHidden=1
 " " open NERDTree automatically when vim starts up on opening a directory
 " autocmd StdinReadPre * let s:std_in=1
 " autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | exe 'NERDTree' argv()[0] | wincmd p | ene | exe 'cd '.argv()[0] | endif
+
+" -----------------
+" arpeggio (manual)
+" -----------------
+
+set runtimepath^=~/.vim/bundle/vim-arpeggio-0.0.6/plugin/arpeggio.vim
+
+" Arpeggio inoremap jk <Esc>   " why wont this work but the below does?
+" OR
+call arpeggio#map('i', '', 0, 'jk', '<Esc>:')
+call arpeggio#map('nv', '', 0, 'jk', '<Esc>')
 

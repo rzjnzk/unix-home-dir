@@ -15,6 +15,10 @@ printf "Beginning execution of \"${HOME}/.bashrc\"\n\n"
 # misc.
 # -----
 
+# disable bell sound effect
+# TODO: validate portability
+set bell-style none
+
 #set -E -o functrace
 #trap "echo ${LINENO} ${BASH_COMMAND}" ERR
 
