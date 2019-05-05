@@ -13,7 +13,7 @@
 # main function
 # -------------
 
-function func_main
+_main()
 {
     case "$1"
     in
@@ -26,9 +26,12 @@ function func_main
         "adds")
             cd "${DIR_PREFIX_DEV}/a1731824/2019/s1/adds/"
             ;;
-	"cs")
-	    cd "${DIR_PREFIX_DEV}/a1731824/2019/s1/cs/"
-	    ;;
+	    "cs")
+	        cd "${DIR_PREFIX_DEV}/a1731824/2019/s1/cs/"
+	        ;;
+        "winusr")
+            cd "/mnt/c/Users/User"
+            ;;
     esac
 }
 
@@ -39,4 +42,4 @@ function func_main
 script_name="$(basename "${BASH_SOURCE[0]}")"
 absolute_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #cd "${absolute_path}"
-func_main "$@"
+_main "$@"

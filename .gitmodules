@@ -4,3 +4,6 @@
 [submodule ".vim/bundle/nerdtree"]
 	path = .vim/bundle/nerdtree
 	url = https://github.com/scrooloose/nerdtree
+[submodule ".emacs.d/themes/atom-one-dark-theme"]
+	path = .emacs.d/themes/atom-one-dark-theme
+	url = ./

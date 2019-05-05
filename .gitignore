@@ -1,44 +1,40 @@
 *
-!.gitignore
-!.gitattributes
-!README.md
+!/.gitignore
+!/.gitattributes
+!/README.md
 
-" root files
 " ----------
 
-!.bashrc
-!.bashrc.old
-!.profile
-!.profile.old
-!.bash_profile
-!.bash_logout
-!.vimrc
-!setup.sh
-!dir-prefixes.sh.example
-!.gitconfig
-!.gitignore_global
-!git-commit-template.txt
+!/.bashrc
+!/.bashrc.old
+!/.profile
+!/.profile.old
+!/.bash_profile
+!/.bash_logout
+!/.vimrc
+!/setup.sh
+!/dir-prefixes.sh.example
+!/.gitconfig
+!/.gitignore_global
+!/git-commit-template.txt
 
-" directories
-" -----------
+!/cmd/
+!/cmd/*
+!/cmd/**
 
-!cmd/
-!cmd/*
-!cmd/**
-
-!.subversion/
-!.subversion/*
-!.subversion/**
+!/.subversion/
+!/.subversion/*
+!/.subversion/**
 " ignore dir containing plaintext password store
-.subversion/auth/svn.simple/*
+/.subversion/auth/svn.simple/*
 
-!.vim/
-!.vim/*
-!.vim/**
+!/.vim/
+!/.vim/*
+!/.vim/**
 
-!.emacs.d/
-!.emacs.d/*
-!.emacs.d/**
-.emacs.d/auto-save-list/
-.emacs.d/auto-save-list/*
-.emacs.d/auto-save-list/**
+!/.emacs.d/
+!/.emacs.d/*
+!/.emacs.d/**
+/.emacs.d/auto-save-list/
+/.emacs.d/auto-save-list/*
+/.emacs.d/auto-save-list/**
