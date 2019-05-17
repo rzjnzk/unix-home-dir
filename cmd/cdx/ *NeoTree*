@@ -1,0 +1,61 @@
+.. (up a dir)
+/home/rzjnzk/
++ .cache/
++ .config/
++ .emacs.d/
++ .git/
++ .gnupg/
++ .java/
++ .local/
++ .npm/
++ .pki/
++ .ssh/
++ .subversion/
++ .vim/
+- cmd/
+  + build/
+  - cdx/
+     *NeoTree*
+    #index.sh#
+    .# *NeoTree*
+    .#index.sh
+    README.md
+    index.sh
+  + config/
+  + file-sorter/
+  + gitt/
+  + home/
+  + l/
+  + lint/
+  + sshh/
+  + testt/
+  + vnu/
+  + ws/
++ uni/
+#.profile#
+.#.profile
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+.bashrc.old
+.bashrc.swp
+.gitattributes
+.gitconfig
+.gitignore
+.gitignore_global
+.gitmodules
+.node_repl_history
+.profile
+.profile.old
+.sudo_as_admin_successful
+.viminfo
+.vimrc
+.vimrc.swo
+.vimrc.swp
+.wget-hsts
+README.md
+dir-prefixes.sh
+dir-prefixes.sh.example
+git-commit-template.txt
+setup.sh

@@ -3,8 +3,6 @@
 !/.gitattributes
 !/README.md
 
-" ----------
-
 !/.bashrc
 !/.bashrc.old
 !/.profile
@@ -38,3 +36,6 @@
 /.emacs.d/auto-save-list/
 /.emacs.d/auto-save-list/*
 /.emacs.d/auto-save-list/**
+/.emacs.d/backups/
+/.emacs.d/backups/*
+/.emacs.d/backups/**
