@@ -1,6 +1,6 @@
-# shell-home-dir
+# `shell-home-dir`
 
-# Installation
+## Installation
 ```sh
 git clone https://github.com/rzjnzk/shell-home-dir /tmp/shell-home-dir && \
     mv -rfv --backup=numbered /tmp/shell-home-dir/* ~ && \
