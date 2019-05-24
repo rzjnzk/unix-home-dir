@@ -1,1 +1,0 @@
-/mnt/c/Users/User/AppData/Roaming/.emacs.d
