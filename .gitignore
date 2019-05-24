@@ -23,13 +23,15 @@
 !/.subversion/
 !/.subversion/*
 !/.subversion/**
-" ignore dir containing plaintext password store
+" dir containing plaintext password store
 /.subversion/auth/svn.simple/*
 
 !/.vim/
 !/.vim/*
 !/.vim/**
 
+" TODO: understand why this dir was not tracked untill it was unignored without a trailing `/`; this may be due to the fact that it is a symlink
+!/.emacs.d
 !/.emacs.d/
 !/.emacs.d/*
 !/.emacs.d/**
