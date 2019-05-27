@@ -4,9 +4,6 @@
 # see /usr/share/doc/bash/examples/startup-files for examples.
 # the files are located in the bash-doc package.
 
-# ConEmu WSL extended buffer length
-printf "\e[32766H"
-
 # --------------------
 # beginning indication
 # --------------------
@@ -200,6 +197,9 @@ export INFOPATH="${INFOPATH}" \
 
 if [ "$(hostname)" = "DESKTOP-DCHFQSJ" ]
 then
+    # ConEmu WSL extended buffer length
+    printf "\e[32766H"
+
     emacs() 
     {
         "/mnt/e/d/User/emacs-26.2-x86_64/runemacs.exe"
