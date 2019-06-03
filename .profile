@@ -54,19 +54,13 @@ then
     # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
     # a case would tend to support setf rather than setaf.)
 
-    PS1_FUNCTION()
+    PS1_CALCULATE_PROMPT()
     {
         # get exit code of command prior to PS1 prompt
         _exit_code=${?}
 
-        # preceeding whitespace
-        # ---------------------
-
-        # last output no newline fix
-        printf "%$(($(tput cols)-1))s\r"
-
-        # empty line, aesthetic seperator
-        printf "\n"
+        # last output no newline fix, with additional newline.
+        printf "%$(($(tput cols)-1))s\r\n"
 
         # line 1, user info
         # -----------------
@@ -102,7 +96,7 @@ then
         # line 2, working dir
         # -------------------
 
-        printf "\033[01;34m\xf0\x9f\x96\xb4  $(pwd)\033[00m"
+        printf "\033[01;34m\e[96m\xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 $(pwd)\033[00m"
         printf "\n"
 
         # line 3 (potentially), repository information
@@ -114,11 +108,11 @@ then
         # if the current dir is a git repository
         if [ ! -z "${_git_branch_name}" ]
         then
-            printf "\e[96m\xf0\x9f\x96\xa7  ${_git_origin_name}\e[0m\n"
-            printf "\e[96m\xe2\x8e\x87  ${_git_branch_name}\e[0m\n"
+            printf "\e[96m\xe2\x94\x9c\xe2\x94\x80\xe2\x94\x80 ${_git_origin_name}\e[0m\n"
+            printf "\e[96m\xe2\x94\x94\xe2\x94\x80\xe2\x94\x80 ${_git_branch_name}\e[0m\n"
             # TODO: \x01\xF5\xA7
         fi
-        
+
         # update the values of LINES and COLUMNS regardless of whether the terminal has been physically resized
         # ref: https://www.mankier.com/1/resize
         printf "$(resize > /dev/null 2>&1)"
@@ -130,7 +124,7 @@ then
         # TODO: consider adding current repo revision number, or information relative either to the repo, or the dir in the repo
     }
 
-    PS1="\$(PS1_FUNCTION)\n\n\[\e[34m\]$\[\e[0m\] "
+    PS1="\$(PS1_CALCULATE_PROMPT)\n\n\[\e[34m\]$\[\e[0m\] "
 else
     PS1="\n${debian_chroot:+($debian_chroot)}\u@\h:\n\w\$(resize > /dev/null 2>&1)\n\n$ "
 fi
@@ -174,8 +168,10 @@ done
 # export *PATH variables
 # ----------------------
 
+# TODO: consider checking for the dirs existance per dir, consider edge cases, and other dynamic factors of influence
+
 export PATH="${PATH}" \
-    # include user's private bin if it exists
+    # include user bin if the dir exists
     "$([ -d "${HOME}/bin" ] && printf ":${HOME}/bin")" \
     "$([ -d "${HOME}/.local/bin" ] && printf ":${HOME}/.local/bin")" \
     # metabox laptop : wsl ubuntu
@@ -187,6 +183,10 @@ export PATH="${PATH}" \
     # homebrew/linuxbrew
     ":/home/linuxbrew/.linuxbrew/bin"
 
+export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}" \
+    # include user dynamically linked libs if the dir exists
+    "$([ -d "${HOME}/.local/lib" ] && printf ":${HOME}/.local/lib")"
+
 export MANPATH="${MANPATH}" \
     # homebrew/linuxbrew
     ":/home/linuxbrew/.linuxbrew/share/man"
@@ -195,12 +195,13 @@ export INFOPATH="${INFOPATH}" \
     # homebrew/linuxbrew
     ":/home/linuxbrew/.linuxbrew/share/info"
 
+# TODO: dynamically check host names from script names under, for example, `./user-hosts`, and move mechine specific or unique logic there. This folders contents should be fully encrypted, either including the file name, of me move entirely, which is cleaner. Consider the case in which the host name might change, and how that case should be handled, whether by a method to asertain the name, or manual user input. A default script should run if the mechine does not match a file, in which a file should be created along with any other possible actions.
 if [ "$(hostname)" = "DESKTOP-DCHFQSJ" ]
 then
-    # ConEmu WSL extended buffer length
-    printf "\e[32766H"
+    # # ConEmu WSL extended buffer length
+    # printf "\e[32766H"
 
-    emacs() 
+    emacs()
     {
         "/mnt/e/d/User/emacs-26.2-x86_64/runemacs.exe"
     }

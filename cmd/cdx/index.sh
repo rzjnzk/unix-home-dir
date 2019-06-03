@@ -35,11 +35,10 @@ _main()
     esac
 }
 
+_main "$@"
+
 # -----------------
 # initialise script
 # -----------------
 
-script_name="$(basename "${BASH_SOURCE[0]}")"
-absolute_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-#cd "${absolute_path}"
-_main "$@"
+

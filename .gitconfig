@@ -8,6 +8,9 @@
 	smudge = git-lfs smudge -- %f
 [core]
 	editor = emacs
-	excludesfile = /home/rzjnzk/.gitignore_global
+	excludesfile = /home/rzjnzk/.gitignore-global
 [commit]
 	template = /home/rzjnzk/.gitmessage
+[github]
+	user = rzjnzk
+	oauth-token = c6c0c6f423769cae11f1b57bfb4b0d354931a9c8
