@@ -8,4 +8,5 @@ cd "${HOME}/home.d/"
 test -e unix-home-dir-private/.git ||
     git clone https://github.com/rzjnzk/unix-home-dir-private
 cd unix-home-dir-private
+# test comment
 sh pre-commit < /dev/tty
