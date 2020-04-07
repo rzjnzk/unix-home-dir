@@ -16,6 +16,9 @@
 !/home.d/
 !/home.d/*
 !/home.d/**
+/home.d/unix-home-dir-private/
+/home.d/unix-home-dir-private/*
+/home.d/unix-home-dir-private/**
 
 # Unexclude when token encryption in handled.
 # !/.gitconfig

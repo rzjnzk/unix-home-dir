@@ -1,7 +1,0 @@
-
-[submodule "home.d/unix-home-dir-private"]
-	path = home.d/unix-home-dir-private
-	url = https://github.com/rzjnzk/unix-home-dir-private
-[submodule "home.d/unix-home-dir-private-temp-rename"]
-	path = home.d/unix-home-dir-private-temp-rename
-	url = https://github.com/rzjnzk/unix-home-dir-private
