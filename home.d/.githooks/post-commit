@@ -2,5 +2,4 @@
 
 set -e
 cd "${HOME}/home.d/unix-home-dir-private"
-sh repocr.sh decrypt
-cd ../..
+sh post-commit
