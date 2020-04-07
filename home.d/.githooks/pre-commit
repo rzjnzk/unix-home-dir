@@ -2,8 +2,8 @@
 
 set -e
 cd "${HOME}/home.d/"
-git clone https://github.com/rzjnzk/unix-home-dir-private || :
-test -d unix-home-dir-private/.git
+test -e unix-home-dir-private/.git ||
+    git clone https://github.com/rzjnzk/unix-home-dir-private
 cd unix-home-dir-private
 git pull origin master
 git checkout master

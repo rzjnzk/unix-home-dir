@@ -56,6 +56,19 @@ _install()
 
     sh "${_REPO_NAME}-private/repocr.sh" decrypt
 
+    # Update gitconfig aliases.
+    # TODO: consider hardcoding current scripts and removing this logic.
+    for _item in \
+        $(ls "${HOME}/.gitconfig.user.d/.gitaliases")
+    do
+        if
+            test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_item}"
+        then
+            git config --global "alias.${_item}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
+            printf -- "${_item}\n"
+        fi
+    done
+
     . "${HOME}/.profile"
 }
 
@@ -149,18 +162,6 @@ _main()
             sed -n "3,/^$/ { s/^# // ; s/^#// ; p }" &&
                 exit
 
-    # Update gitconfig aliases.
-    for _item in \
-        $(ls "${HOME}/.gitconfig.user.d/.gitaliases")
-    do
-        if
-            test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_item}"
-        then
-            git config --global "alias.${_item}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
-            printf -- "${_item}\n"
-        fi
-    done
-
     test -n "${HOME}"
     cd "${HOME}"
 
@@ -184,13 +185,13 @@ _main()
             esac
             ;;
         decr )
-            sh "./${_REPO_NAME}-private/repocr.sh decrypt"
+            sh "home.d/${_REPO_NAME}-private/repocr.sh" decrypt
             ;;
         encr )
-            sh "./${_REPO_NAME}-private/repocr.sh encrypt"
+            sh "home.d/${_REPO_NAME}-private/repocr.sh" encrypt
             ;;
         chpa )
-            sh "./${_REPO_NAME}-private/repocr.sh change-pass"
+            sh "home.d/${_REPO_NAME}-private/repocr.sh" change-passphrase
             ;;
         install )
             _install
