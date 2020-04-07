@@ -1,11 +1,14 @@
 #!/bin/sh
 
 set -e
-cd "${HOME}/home.d/unix-home-dir-private"
+cd "${HOME}/home.d/"
+git clone https://github.com/rzjnzk/unix-home-dir-private || :
+test -d unix-home-dir-private/.git
+cd unix-home-dir-private
 git pull origin master
 git checkout master
 sh repocr.sh encrypt
 git add -A
 git commit --edit --signoff --status --verbose
-git push master origin
+git push -f master origin
 cd ../..
