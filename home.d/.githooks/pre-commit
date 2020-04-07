@@ -1,6 +1,9 @@
 #!/bin/sh
 
 set -e
+printf -- "Executing \`pre-commit\` hook."
+# Allows us to read user input. Assigns stdin to keyboard.
+exec < /dev/tty
 cd "${HOME}/home.d/"
 test -e unix-home-dir-private/.git ||
     git clone https://github.com/rzjnzk/unix-home-dir-private

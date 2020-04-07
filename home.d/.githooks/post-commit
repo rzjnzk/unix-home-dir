@@ -1,5 +1,8 @@
 #!/bin/sh
 
 set -e
+printf -- "Executing \`post-commit\` hook."
+# Allows us to read user input. Assigns stdin to keyboard.
+exec < /dev/tty
 cd "${HOME}/home.d/unix-home-dir-private"
-sh post-commit < /dev/tty
+sh post-commit
