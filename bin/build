@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# NAME
+#     build - build automation script
+#
+# DESCRIPTION
+#
+# COMMANDS
+#     ws
+#         Compile and execute with `g++` flags used by the Adelaide University web submission system.
+#         `g++ -o main.out -O2 -Wall *.cpp`
+#
+#     verb
+#         `g++ -O2 -pedantic -Wall -Wextra -fsanitize=address *.cpp`
+#
+#     gdb
+#         `g++ -O2 -pedantic -Wall -Wextra -g *.cpp`
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test "${_script_args}" &&
+        printf -- "${_script_args}" |
+            sed -n "/^--help$/q ; /^-h$/q ; q5" &&
+                cat "${_script_path}/${_script_name}" |
+                    sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
+                        exit
+
+    if
+        test -n "$(printf -- "${_script_args}" | sed -n "/^ws$/p")"
+    then
+        set -x
+        g++ -o main.out -O2 -Wall *.cpp
+        ./main.out
+        set +x
+    elif
+        test -n "$(printf -- "${_script_args}" | sed -n "/^verb$/p")"
+    then
+        set -x
+        g++ -O2 -pedantic -Wall -Wextra -fsanitize=address *.cpp
+        # removed -g flag (gdb) as conflicts with leak sanitiser
+        ./a.out
+        set +x
+    elif
+        test -n "$(printf -- "${_script_args}" | sed -n "/^gdb$/p")"
+    then
+        set -x
+        g++ -O2 -pedantic -Wall -Wextra -g *.cpp
+        ./a.out
+        set +x
+    fi
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"

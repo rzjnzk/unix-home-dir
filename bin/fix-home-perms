@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# NAME
+#     fix-home-perms
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+    sudo chmod u+r "${HOME}"
+    find "${HOME}" -type f \
+        -exec chmod u+r {} +
+    sudo chmod u+x "${HOME}/bin/"*
+    sudo chown "${USER}" "${HOME}"
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+# mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" # | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"

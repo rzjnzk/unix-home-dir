@@ -1,0 +1,107 @@
+#!/bin/sh
+
+# Description: A syntax highlighted and more verbose ls alternative.
+# Author: Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+
+_sed_colourise_permissions()
+{
+    printf -- "%s" \
+        "s/r/$(tput setaf 2)r$(tput sgr0)/g;" \
+        "s/w/$(tput setaf 5)w$(tput sgr0)/g;" \
+        "s/x/$(tput setaf 1)x$(tput sgr0)/g"
+}
+
+_main()
+{
+    # _detailed_ls_of_given_dir=$(ls -all --format=single-column --classify --color=none ${@})
+
+    _current_dir="$(pwd)"
+
+    test ${@} || set -- "."
+
+    # IFS=$'\n'
+
+    for _dir in \
+    "${@}"
+    do
+        cd "${_dir}"
+
+        _output=""
+
+        _output="NAME \tSIZE \tPERMISSIONS \tMODIFIED\n"
+        _output="${_output}---- \t---- \t----------- \t--------\n"
+
+        _dir_contents="$(ls --all --format=single-column --color=none)"
+
+        for _item in ${_dir_contents}
+        do
+            _output="${_output}$(stat --dereference --printf="%n \t%s \t%A/%a \t" "${_item}")"
+            _output="${_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")\n"
+        done
+
+        printf -- "$(pwd):\n\n$(printf -- "${_output}" | pr --columns=4 --omit-header -J --sep-string)\n\n\n"
+    done
+
+    # unset IFS
+
+    cd ${_current_dir}
+}
+
+# TODO: Fix column formatting before deleteing the temporary redefine.
+_main()
+{
+    ls -la "${@}"
+}
+
+# set -e
+# _script_name="$(basename -- "${0}")"
+# _script_path="$(dirname -- "${0}")"
+# _script_path="$(cd "${_script_path}" ; pwd)"
+# _script_args="$(printf -- "%s\n" "${@}")"
+# mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" # | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+
+# _main ()
+# {
+#     # _detailed_ls_of_given_dir=$(ls -all --format=single-column --classify --color=none ${@})
+#
+#     _current_dir="$(pwd)"
+#
+#     if [ -z ${@} ]
+#     then
+#         set -- "."
+#     fi
+#
+#     _output=""
+#
+#     IFS=$'\n'
+#
+#     for _dir in ${@}
+#     do
+#         cd "${_dir}"
+#         printf "$(pwd):\n\n"
+#
+#         #_output="${_output}NAME SIZE PERMISSIONS MODIFIED\n"
+#         #_output="${_output}---- ---- ----------- --------\n"
+#
+#         _dir_contents="$(ls -all --format=single-column --color=none)"
+#
+#         for _item in ${_dir_contents}
+#         do
+#             _output="${_output}$(stat --dereference --printf="%n " "${_item}")"
+#             _output="${_output}$(stat --dereference --printf="%s " "${_item}")"
+#             _output="${_output}$(stat --dereference --printf="%A_%a " ${_item}")" # | sed "$(_sed_colourise_permissions)"
+#             _output="${_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")"
+#             _output="${_output}\n"
+#         done
+#
+#         unset
+#     done
+#
+#     unset IFS
+#
+#     _output="$(printf "${_output}" | column -t)"
+#
+#     printf "${_output}"
+#
+#     cd ${_current_dir}

@@ -1,0 +1,219 @@
+#!/bin/sh
+#
+# NAME
+#     configure - install and setup rzjnzk's personal unix system configuration
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX feature capable shell.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+#
+# NOTES
+#     Main Repository: <https://github.com/rzjnzk/unix-home-dir>
+
+_REPO_NAME="unix-home-dir"
+
+_install()
+{
+    # TODO: Remove need for sed quit with exit code to increase portability, as basic versions of sed do not support, for example, `q5`, only `q`.
+    # TODO: Simplify this logic.
+    if
+        test -d ./.git &&
+            test -n \
+                "$(
+                    git config --local --get remote.origin.url |
+                        sed -n "/github\.com[:\/]rzjnzk\/${_REPO_NAME}/ p"
+                )"
+    then
+        return
+    else
+        test -d "/tmp/${_REPO_NAME}" && rm -vrf "/tmp/${_REPO_NAME}"
+        git clone --recursive "https://github.com/rzjnzk/${_REPO_NAME}" "/tmp/${_REPO_NAME}"
+
+        _backup_dir="./${_REPO_NAME}-backups/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC"
+        mkdir -p -- "${_backup_dir}"
+
+        mv -vfb "/tmp/${_REPO_NAME}/${_script_name}" "${HOME}"
+
+        for _node in \
+            $(ls -A1 "/tmp/${_REPO_NAME}")
+        do
+            # Backup home dir nodes that name match temp-repo nodes.
+            test -e "${_node}" &&
+                mv -v -- "${_node}" "${_backup_dir}/${_node}"
+            # Move temp-repo nodes into home dir.
+            mv -vn "/tmp/${_REPO_NAME}/${_node}" "${_node}"
+        done
+
+        rm -vrf "/tmp/${_REPO_NAME}"
+    fi
+
+    # Specify git hooks path. This is required for automatic encrypt and decrypt scripts.
+    git config --local core.hooksPath "~/home.d/.githooks" || :
+
+    sh "${_REPO_NAME}-private/repocr.sh" decrypt
+
+    . "${HOME}/.profile"
+}
+
+_read_confirmation()
+{
+    printf -- "Are you sure you want to perform this action? (y/N) "
+    read _user_input
+    if
+        test "${_user_input}" != y &&
+        test "${_user_input}" != Y
+    then
+        printf -- "Aborted.\n"
+        exit
+    fi
+}
+
+_shred_temp()
+{
+    _read_confirmation
+
+    for _dir in \
+        "${HOME}/.cache"
+    do
+        find "${_dir}" -type f \
+            -exec shred -vzu {} + || :
+    done
+    for _file in \
+        ".bash_history" \
+        ".node_repl_history" \
+        ".vim/.netrwhist" \
+        ".viminfo" \
+        ".lesshst" \
+        ".bzr.log"
+    do
+        shred -vzu -- "${_file}" || :
+    done
+    for _file_name in \
+        .*.swp
+    do
+        find "${HOME}" -type f -name "${_file_name}" \
+            -exec shred -vzu {} +
+    done
+}
+
+_shred_priv()
+{
+    _read_confirmation
+    # WORNING: Ensure the home root dir is never included in this list.
+    for _dir in \
+        "${HOME}/.gnupg" \
+        "${HOME}/.ssh"
+    do
+        find "${_dir}" -type f \
+            -exec shred -vzu {} + || :
+    done
+    for _file in \
+        ".gitconfig" \
+        ".config/hub"
+    do
+        shred -vzu -- "${_file}" || :
+    done
+}
+
+_shred_home()
+{
+    _read_confirmation
+    printf -- "This action will shred all data in the \`${HOME}\` directory. "
+    _read_confirmation
+    read _user_input
+    find "${HOME}" -type f \
+        -exec shred -vzu {} + || :
+}
+
+_push()
+{
+    git add -A
+    git commit --edit --signoff --status --verbose
+    git push origin master
+}
+
+_pull()
+{
+    git pull origin master
+}
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test -n "$(printf -- "${_script_args}" | sed -n "/^--help$/ p ; /^-h$/ p")" &&
+        cat "${_script_path}/${_script_name}" |
+            sed -n "3,/^$/ { s/^# // ; s/^#// ; p }" &&
+                exit
+
+    # Update gitconfig aliases.
+    for _item in \
+        $(ls "${HOME}/.gitconfig.user.d/.gitaliases")
+    do
+        if
+            test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_item}"
+        then
+            git config --global "alias.${_item}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
+            printf -- "${_item}\n"
+        fi
+    done
+
+    test -n "${HOME}"
+    cd "${HOME}"
+
+    case \
+        "${1}"
+    in
+        # TODO: Consider storing paths to files/dirs in `home.d/shred/temp` or `home.d/shred/priv`.
+        shred )
+            case \
+                "${2}"
+            in
+                temp )
+                    _shred_temp
+                    ;;
+                priv )
+                    _shred_priv
+                    ;;
+                home )
+                    _shred_home
+                    ;;
+            esac
+            ;;
+        decr )
+            sh "./${_REPO_NAME}-private/repocr.sh decrypt"
+            ;;
+        encr )
+            sh "./${_REPO_NAME}-private/repocr.sh encrypt"
+            ;;
+        chpa )
+            sh "./${_REPO_NAME}-private/repocr.sh change-pass"
+            ;;
+        install )
+            _install
+            ;;
+        push )
+            _push
+            ;;
+        pull )
+            _pull
+            ;;
+    esac
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+
+# TODO: Consider the following. `find: warning: Unix filenames usually don't contain slashes (though pathnames do). That means that '-name ‘./.viminfo’' will probably evaluate to false all the time on this system.  You might find the '-wholename' test more useful, or perhaps '-samefile'.  Alternatively, if you are using GNU grep, you could use 'find ... -print0 | grep -FzZ ‘./.viminfo’'.``
+
+
+        #                 tar cvzf - data/ |
+        #                     split -db 100m - "data.tar.gz."

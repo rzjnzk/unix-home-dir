@@ -1,0 +1,9 @@
+#!/bin/sh
+
+_main()
+{
+    # Credit: https://stackoverflow.com/a/16865578/8292979
+    diff "${@}" | sed 's/^-/\x1b[41m-/;s/^+/\x1b[42m+/;s/^@/\x1b[34m@/;s/$/\x1b[0m/'
+}
+
+_main "${@}"

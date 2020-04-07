@@ -1,0 +1,47 @@
+#!/bin/sh
+
+(
+
+_main()
+{
+    sudo apt-get update -y
+    sudo spt-get upgrade -y
+    sudo apt-get install -y \
+        qemu-kvm \
+        libvirt-clients \
+        libvirt-daemon-system \
+        git \
+        gnupg \
+        perl \
+        hashcat \
+        clamav \
+        libtrash
+
+    # `clamav`: Open source cross-platform antivirus.
+    # `hashcat`: Hash cracking program.
+    # `libtrash`: Trash can for for deleted files, likely including via `rm`.
+
+    # Install `gpg`/`gnupg`
+    sudo apt install gnupg ||
+        sudo apt-get install gnupg ||
+            sudo yum install gnupg ||
+                sudo dnf install gnupg ||
+                    sudo pacman -S gnupg ||
+                        sudo zypper install gpg2 ||
+                            {
+                                cd /usr/ports/security/gnupg/ &&
+                                    make install clean &&
+                                        pkg install gnupg
+                            } ||
+                                doas pkg_add gnupg
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+
+)

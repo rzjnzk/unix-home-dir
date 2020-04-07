@@ -1,0 +1,86 @@
+DISPLAY=":0"
+EDITOR="nano"
+VISUAL="nano"
+GIT_EDITOR="nano"
+_DIR_PREFIX_REPOS="/mnt/e/d/User/development"
+_DIR_PREFIX_REPOS="${HOME}/dev"
+
+cdx()
+{
+    case \
+        "${1}"
+    in
+        dev )
+            cd "${_DIR_PREFIX_REPOS}"
+            ;;
+        wdc )
+            cd "${_DIR_PREFIX_REPOS}/a1731824/2019/s1/wdc"
+            ;;
+        adds )
+            cd "${_DIR_PREFIX_REPOS}/a1731824/2019/s1/adds"
+            ;;
+        cs )
+            cd "${_DIR_PREFIX_REPOS}/a1731824/2019/s1/cs"
+            ;;
+        winusr )
+            cd "/mnt/c/Users/User"
+            ;;
+        desktop )
+            cd "/mnt/c/Users/User/Desktop"
+            ;;
+        mc )
+            cd "/mnt/c/Users/User/AppData/Roaming/.minecraft/minecraft-server-vanilla"
+            ;;
+        skyrim )
+            cd "/mnt/d/SteamLibrary/steamapps/common/Skyrim"
+            ;;
+    esac
+}
+
+mcserver()
+{
+    sh "/mnt/c/Users/User/AppData/Roaming/.minecraft/minecraft-server-vanilla/start.sh" "${@}"
+}
+
+skyrimtserver()
+{
+    _break="false"
+
+    trap "_break=\"true\"" INT
+
+    tput setaf 3
+    printf -- "Running server at ip $(curl "ifconfig.co") on default port 10578.\n"
+    tput sgr0
+
+    while
+        test "${_break}" = "false"
+    do
+        # NOTE: Enforcing default port for SkyrimTogether `10578`. This port must be forwarded for UDP.
+        # NOTE: Use the `name` flag to add the server to the list of public servers.
+        # NOTE: Use the `token` flag to require a token when connecting to make a server private.
+        "/mnt/d/SteamLibrary/steamapps/common/Skyrim/server/Server.exe" \
+            -port 10578 \
+            -premium
+
+        _server_exit_status="${?}"
+
+        tput setaf 1
+        printf -- "\`Server.exe\` exited with exit status ${_server_exit_status}.\n"
+        tput sgr0
+    done
+
+    tput setaf 3
+    printf -- "Infinite loop broken.\n"
+    tput sgr0
+
+    trap - INT
+}
+
+gti()
+{
+    git "${@}"
+}
+
+# TODO: Check this. May cause visual bugs.
+# # ConEmu WSL extended buffer length
+# printf "\e[32766H"

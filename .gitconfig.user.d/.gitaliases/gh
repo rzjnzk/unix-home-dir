@@ -1,0 +1,36 @@
+##!/bin/sh # source
+#
+# NAME
+#     gh
+#
+# DESCRIPTION
+#     
+#
+# AUTHOR 
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test "${_script_args}" &&
+        printf -- "${_script_args}" |
+        sed -n "/^--help$/q ; /^-h$/q ; q5" &&
+        cat "${_script_path}/${_script_name}" |
+        sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
+        exit
+
+    _user_name="$(git config --get github.user)"
+    _oauth_token="$(git config --get github.oauth-token)"
+
+    _repo_data="$(curl "https://api.github.com/users/${_user_name}/repos?access_token=${_oauth_token}")"
+}
+
+set -e
+_script_name="$(basename "${0}")"
+_script_path="$(dirname "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+printf -- "\n\$ \"${_script_path}/${_script_name}\" [$(date --utc +%Y-%m-%d--%H-%M-%S)]\n\n" >> \
+    "${_script_path}/${_script_name}.log"
+_main "${@}" | tee --append -- "${_script_path}/${_script_name}.log"

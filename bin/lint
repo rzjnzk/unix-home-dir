@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# NAME
+#     lint
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test -n "${_script_args}" &&
+        printf -- "${_script_args}" |
+        sed -n "/^--help$/q ; /^-h$/q ; q5" &&
+        cat "${_script_path}/${_script_name}" |
+        sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
+        exit
+
+    if
+    printf -- "${_script_args}" |
+        sed -n "/^posix$/q ; q5"
+    then
+        shift
+        shellcheck -x --shell=sh --exclude=SC2059,SC1090 ${@}
+
+    fi
+}
+
+# set -e
+# _script_name="$(basename -- "${0}")" # TODO: `basename` appears to not be workign as expected, does removing `--` help?
+# _script_path="$(dirname -- "${0}")" # TODO: Potentially same problem as above.
+# _script_path="$(cd "${_script_path}" ; pwd)"
+# _script_args="$(printf -- "%s\n" "${@}")"
+# mkdir -- "${_script_path}/${_script_name}-logs"
+# _main "${@}" | tee --append -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S).log"
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"

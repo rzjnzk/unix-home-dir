@@ -1,0 +1,37 @@
+##!/bin/sh # source
+#
+# NAME
+#     git hist - (alias script) display git history in a pretty-printed format
+#
+# DESCRIPTION
+#
+# AUTHOR 
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test "${_script_args}" &&
+        printf -- "${_script_args}" |
+        sed -n "/^--help$/q ; /^-h$/q ; q5" &&
+        cat "${_script_path}/${_script_name}" |
+        sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
+        exit
+
+    git log \
+        --graph \
+        --abbrev-commit \
+        --decorate=no \
+        --date=format:"%Y-%m-%d %H:%I:%S" \
+        --format=format:"%C(03)%>|(26)%h%C(reset)  %C(04)%ad%C(reset)  %C(green)%<(16,trunc)%an%C(reset)  %C(bold 1)%d%C(reset) %C(bold 0)%>|(1)%s%C(reset)" \
+        --all
+} 
+
+set -e
+_script_name="$(basename "${0}")"
+_script_path="$(dirname "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+printf -- "\n\$ \"${_script_path}/${_script_name}\" [$(date --utc +%Y-%m-%d--%H-%M-%S)]\n\n" >> \
+    "${_script_path}/${_script_name}.log"
+_main "${@}" | tee --append -- "${_script_path}/${_script_name}.log"

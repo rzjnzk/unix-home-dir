@@ -1,0 +1,43 @@
+##!/bin/sh # source
+#
+# NAME
+#     git purgefile - (alias script) remove file data throughout git history
+#
+# DESCRIPTION
+#     Removes the data and record of given specified files at absolute paths throughout the repositories history.
+#
+# AUTHOR 
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    test "${_script_args}" &&
+        printf -- "${_script_args}" |
+        sed -n "/^--help$/q ; /^-h$/q ; q5" &&
+        cat "${_script_path}/${_script_name}" |
+        sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
+        exit
+
+    for _file_path in \
+    "${@}"
+    do
+        git filter-branch \
+            --force \
+            --index-filter \
+                "git rm --cached --ignore-unmatch \"${_file_path}\"" \
+            --prune-empty \
+            --tag-name-filter cat \
+            -- \
+            --all
+    done
+}
+
+set -e
+_script_name="$(basename "${0}")"
+_script_path="$(dirname "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+printf -- "\n\$ \"${_script_path}/${_script_name}\" [$(date --utc +%Y-%m-%d--%H-%M-%S)]\n\n" >> \
+    "${_script_path}/${_script_name}.log"
+_main "${@}" | tee --append -- "${_script_path}/${_script_name}.log"

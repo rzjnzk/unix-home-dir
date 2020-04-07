@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+cd "${HOME}/home.d/unix-home-dir-private"
+git pull origin master
+git checkout master
+sh repocr.sh encrypt
+git add -A
+git commit --edit --signoff --status --verbose
+git push master origin
+cd ../..

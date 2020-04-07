@@ -1,0 +1,4 @@
+${HOME}/.gitconfig
+# Test comment.
+${HOME}/.ssh
+${HOME}/.gnupg
