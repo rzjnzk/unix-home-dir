@@ -5,7 +5,7 @@
 _main()
 {
     sudo apt-get update -y
-    sudo spt-get upgrade -y
+    sudo apt-get upgrade -y
     sudo apt-get install -y \
         qemu-kvm \
         libvirt-clients \

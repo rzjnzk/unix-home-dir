@@ -1,4 +1,4 @@
-*
+/*
 !/.gitignore
 !/.gitattributes
 !/.gitmodules
@@ -14,75 +14,38 @@
 
 !/home
 !/home.d/
-!/home.d/*
-!/home.d/**
 /home.d/unix-home-dir-private/
-/home.d/unix-home-dir-private/*
-/home.d/unix-home-dir-private/**
 
 # Unexclude when token encryption in handled.
 # !/.gitconfig
 /.gitconfig
-
 !/.gitconfig.user.d/
-!/.gitconfig.user.d/*
-!/.gitconfig.user.d/**
-
 !/.clang-format
 
 !/.profile.d/
-!/.profile.d/*
-!/.profile.d/**
 
+!/sh
 !/bin/
-!/bin/*
-!/bin/**
 
 !/.subversion/
-!/.subversion/*
-!/.subversion/**
 # Dir containing plaintext password store.
 /.subversion/auth/svn.simple/
-/.subversion/auth/svn.simple/*
-/.subversion/auth/svn.simple/**
 
 !/.vim/
-!/.vim/*
-!/.vim/**
 
 !/.githooks/
-!/.githooks/*
-!/.githooks/**
 
 !/.emacs.d/init.el
 !/.emacs.d/README.md
 !/.emacs.d/snippets/
-!/.emacs.d/snippets/*
-!/.emacs.d/snippets/**
 !/.emacs.d/elisp/
-!/.emacs.d/elisp/*
-!/.emacs.d/elisp/**
 # !/.emacs.d/
-# !/.emacs.d/*
-# !/.emacs.d/**
 # /.emacs.d/auto-save-list/
-# /.emacs.d/auto-save-list/*
-# /.emacs.d/auto-save-list/**
 # /.emacs.d/backups/
-# /.emacs.d/backups/*
-# /.emacs.d/backups/**
 # /.emacs.d/var/
-# /.emacs.d/var/*
-# /.emacs.d/var/**
 # /.emacs.d/transient/
-# /.emacs.d/transient/*
-# /.emacs.d/transient/**
 # /.emacs.d/network-security.data
 # # Temporary.
 # /.emacs.d/git/
-# /.emacs.d/git/*
-# /.emacs.d/git/**
 
 !/resources/
-!/resources/*
-!/resources/**

@@ -1,0 +1,3 @@
+PATH="${PATH}:/usr/local/nand2tetris/tools"
+PATH="${PATH}:/usr/java/latest/bin"
+export PATH

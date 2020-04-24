@@ -19,7 +19,11 @@ mkdir -vp \
     "${HOME}/.profile.hosts.d"
     "${HOME}/bin"
 
-export PATH="${PATH}:${HOME}/bin"
+PATH="${PATH}:${HOME}/bin"
+export PATH
+
+chmod u+rwx "${HOME}"/bin/*
+
 export GPG_TTY="$(tty)"
 
 eval "$(cat "${HOME}/.env" | sed "s/^.*$/export &/g")"

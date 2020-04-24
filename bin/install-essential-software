@@ -1,0 +1,24 @@
+#!/bin/sh
+
+_main()
+{
+    sudo apt update
+    sudo apt upgrade -y
+    cd /tmp
+    wget "https://discordapp.com/api/download?platform=linux&format=deb"
+    sudo apt install ./discord*.deb
+
+    # sudo dpkg -i discord*.deb
+    # # NOTE: Run `sudo apt install -f` is any errors occur during `dpkg`, it is unclearwether errors are possible with a zero exit code. Investigate automation of this process.
+    # sudo apt install -f
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${HOME}/${_script_name}/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+
+)

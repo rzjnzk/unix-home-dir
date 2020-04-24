@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+printf -- "Executing \`post-commit\` hook.\n"
+# Allow read user input. Assigns stdin to keyboard.
+exec < /dev/tty
+cd "${HOME}"/home.d/unix-home-dir-private
+sh pggset decrypt

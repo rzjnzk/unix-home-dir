@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# <https://linuxconfig.org/how-to-benchmark-your-linux-system>
+# NOTE: Regarding `sysbench`. All the tests are fairly straightforward. You can run the test with `--test=X run`. Change the run to help to get the options specific to that test. Why not start out by running the CPU test. It's probably the most common one that you'll want to check, especially if you're an overclocker.
+
+set -e
+
+sudo apt install sysbench
+
+_time="$(date --utc +%Y-%m-%d_%H-%M-%S)"
+test -n "${_time}"
+
+mkdir -pv "${HOME}/sysbench-out/${_time}_UTC"
+cd "${HOME}/sysbench-out/${_time}_UTC"
+
+sysbench --test=cpu run | tee -a cpu
+sysbench --test=memory run | tee -a memory
+sysbench --test=fileio --file-test-mode=seqwr run | tee -a fileio
+
+mkdir -pv "${USER}/bin"
+cd "${USER}/bin"
+# TODO: See if there is a permalink for 'latest version' rather than specifically version 1.1.
+wget https://assets.unigine.com/d/Unigine_Superposition-1.1.exe
+printf "Running \`$(ls ./Unigine_Superposition*.run)\`\n"
+chmod u+x ./Unigine_Superposition*.run
+./Unigine_Superposition*.run

@@ -18,18 +18,22 @@ _REPO_NAME="unix-home-dir"
 
 _install()
 {
+    # If current dir is a git repo with remote `${_REPO_NAME}` by `github.com/rzjnzk`, then return.
     # TODO: Remove need for sed quit with exit code to increase portability, as basic versions of sed do not support, for example, `q5`, only `q`.
     # TODO: Simplify this logic.
     if
-        test -d ./.git &&
-            test -n \
-                "$(
-                    git config --local --get remote.origin.url |
-                        sed -n "/github\.com[:\/]rzjnzk\/${_REPO_NAME}/ p"
-                )"
+        test -z \
+            "$(
+                git config --local --get remote.origin.url |
+                    sed -n "/github\.com[:\/]rzjnzk\/${_REPO_NAME}/ p"
+            )"
     then
-        return
-    else
+        test -d ./.git &&
+            {
+                printf -- "ERROR: Home dir is a git repository, but the remote is incorrect"
+                exit 1
+            }
+
         test -d "/tmp/${_REPO_NAME}" && rm -vrf "/tmp/${_REPO_NAME}"
         git clone --recursive "https://github.com/rzjnzk/${_REPO_NAME}" "/tmp/${_REPO_NAME}"
 
@@ -54,7 +58,8 @@ _install()
     # Specify git hooks path. This is required for automatic encrypt and decrypt scripts.
     git config --local core.hooksPath "~/home.d/.githooks" || :
 
-    sh "${_REPO_NAME}-private/repocr.sh" decrypt
+    # Decrypt.
+    sh "./home.d${_REPO_NAME}-private/pggset" decrypt
 
     # Update gitconfig aliases.
     # TODO: consider hardcoding current scripts and removing this logic.
@@ -185,13 +190,13 @@ _main()
             esac
             ;;
         decr )
-            sh "home.d/${_REPO_NAME}-private/repocr.sh" decrypt
+            sh "home.d/${_REPO_NAME}-private/pggset" decrypt
             ;;
         encr )
-            sh "home.d/${_REPO_NAME}-private/repocr.sh" encrypt
+            sh "home.d/${_REPO_NAME}-private/pggset" encrypt
             ;;
         chpa )
-            sh "home.d/${_REPO_NAME}-private/repocr.sh" change-passphrase
+            sh "home.d/${_REPO_NAME}-private/pggset" change-passphrase
             ;;
         install )
             _install
@@ -211,7 +216,7 @@ _script_path="$(dirname -- "${0}")"
 _script_path="$(cd "${_script_path}" ; pwd)"
 _script_args="$(printf -- "%s\n" "${@}")"
 mkdir -p -- "${_script_path}/${_script_name}-logs"
-_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+_main "${@}" | tee -a -- "${_script_path}/home.d/logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
 
 # TODO: Consider the following. `find: warning: Unix filenames usually don't contain slashes (though pathnames do). That means that '-name ‘./.viminfo’' will probably evaluate to false all the time on this system.  You might find the '-wholename' test more useful, or perhaps '-samefile'.  Alternatively, if you are using GNU grep, you could use 'find ... -print0 | grep -FzZ ‘./.viminfo’'.``
 

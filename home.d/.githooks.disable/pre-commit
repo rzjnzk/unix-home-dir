@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+printf -- "Executing \`pre-commit\` hook.\n"
+# Allow read user input. Assigns stdin to keyboard.
+exec < /dev/tty
+cd "${HOME}/home.d/"
+test -e unix-home-dir-private/.git ||
+    git clone https://github.com/rzjnzk/unix-home-dir-private
+cd "${HOME}"/home.d/unix-home-dir-private
+sh pggset pull
+sh pggset encrypt
+sh pggset push

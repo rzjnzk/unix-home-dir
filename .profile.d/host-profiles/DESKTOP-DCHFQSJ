@@ -1,7 +1,10 @@
-DISPLAY=":0"
-EDITOR="nano"
-VISUAL="nano"
-GIT_EDITOR="nano"
+export PATH="${PATH}:/usr/local/nand2tetris/tools"
+
+# export DISPLAY=":0"
+export DISPLAY="localhost:0.0"
+export EDITOR="nano"
+export VISUAL="nano"
+export GIT_EDITOR="nano"
 _DIR_PREFIX_REPOS="/mnt/e/d/User/development"
 _DIR_PREFIX_REPOS="${HOME}/dev"
 
