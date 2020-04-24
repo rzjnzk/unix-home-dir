@@ -24,7 +24,7 @@
 
 !/.profile.d/
 
-!/sh
+!/sh/
 !/bin/
 
 !/.subversion/
@@ -49,3 +49,8 @@
 # /.emacs.d/git/
 
 !/resources/
+
+!/data/
+!/notes/
+!/include/
+!/src/

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -e
+
+_bin_name="unreg-web-domain-search"
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+
+cd "${_script_path}"
+mkdir -pv bin
+mkdir -pv src
+cd src
+gcc -O2 -pedantic -Wall -Wextra *.c -g -o ../bin/"${_bin_name}"
+rm -vf "${HOME}/bin/${_bin_name}"
+ln -sv "${_script_path}/bin/${_bin_name}" "${HOME}/bin/${_bin_name}" || :
