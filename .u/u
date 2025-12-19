@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+_repository_fork__url=""
+
+_repository_base__url="https://raw.githubusercontent.com/rzjnzk/u/master/libexec/bin/u"
+
+if
+    command -v curl > /dev/null 2>&1
+then
+    curl -sS "${_repository_base__url}" \
+    | _repository_fork__url="${_repository_fork__url}" sh -s -- "${@}"
+elif
+    command -v wget > /dev/null 2>&1
+then
+    wget -qO- "${_repository_base__url}" \
+    | _repository_fork__url="${_repository_fork__url}" sh -s -- "${@}"
+else
+    printf "%s" "${_color_red}Error:${_color_reset} Neither \`wget\` nor \`curl\` is installed." >&2
+
+    exit 1
+fi

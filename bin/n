@@ -1,0 +1,241 @@
+#!/bin/sh
+#
+# NAME
+#     n - notes, helper command for easy viewing, editing, and searching of the `${HOME}/notes` directory
+#
+# DESCRIPTION
+#
+# COMMANDS
+#     h, help
+#         Print the current note files in `${HOME}/notes` in a tree format followed by this information.
+#         This is the default subcommand and will be executed if no arguments are provided.
+#
+#     p, print, cat <RELATIVE_PATH_TO_NOTE_FILE>
+#         Print the contents of a specified note file.
+#         The path argument should be relative to `${HOME}/notes`.
+#         Example: `${_script_name}languages/javascript/README.md`.
+#         Note: If the `.md` extension is not provided, it will be suffixed to the file name automatically.
+#     
+#     e, edit, open <RELATIVE_PATH_TO_NOTE_FILE>
+#         Create or edit an existing file.
+#         The file will be opened by appending the specified path to command specified by the `EDITOR`.
+#         If the `EDITOR` environment variable is not set, an attempt will be made to open it with `nano`, then `vim`. If neither are installed, the program will exit with an error.
+#
+#     mv, move <RELATIVE_PATH_TO_NOTE_FILE> <MV_TARGET_DIR>
+#         Move a file to a new location within the `${HOME}/notes` directory.
+#
+#     rn, rename <RELATIVE_PATH_TO_NOTE_FILE> <NEW_FILE_NAME>
+#         Rename a file while keeping it in the same directory.
+#
+#     s, search, find <SEARCH_TERM> ...
+#         TODO: Implement.
+#         Search all file names and file contents, and print the results.
+#         For each file name matched, the content of the file will be output.
+#         For each substring matched in file contents, the file content will be printed with the matched substring colorized.
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+# TODO: Consider abstracting so that this can be used for easy text file managment of directories other than `~/notes`. Perhapse by renaming this script, and making the first param the base dir, and creating a wraper script with the current old of this script, which calls this script with the =new first param already specified. Or after the arg parser lib is written, provide the base dir via an optional argument value, and prompt for the base dir if not provided, still using the wrapper script to call this script with the base dir as the optional argument value.
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+_indent="    "
+
+# NOTE: If this path is changed, it should also be changed in the leading comments of this file.
+_dir_notes="${HOME}/notes"
+
+_print_dir_tree()
+{
+    printf "%s\n" \
+    "Current note files in \`{_dir_notes}\`:" \
+    ""
+
+    if
+        command -v tree >/dev/null 2>&1
+    then
+        tree "${_dir_notes}"
+    else
+        printf "%s\n" \
+            "NOTE: Please install \`tree\` to view current note files in tree format here." \
+            "Otherwise, you may inspect the directory manually: \`${_dir_notes}\`."
+    fi
+}
+
+_print_help()
+{
+    printf "Help:\n\n"
+        
+    sed -n \
+        "
+            3,/^$/ \
+            {
+                s/^# //g
+                s/^#//g
+                p
+            }
+        " \
+        "${_script_path}/${_script_name}"
+}
+
+# NOTE: If argument names are changed, they should also be changed in the leading comments of this file.
+if
+    test "${#}" -eq 0
+then
+    # TODO: Update man comments.
+
+    _print_help
+
+    printf "%s\n"
+
+    _print_dir_tree
+
+    exit
+elif
+    test "${1}" = "h" \
+    || test "${1}" = "help"
+then
+    # TODO: Update man comments.
+
+    _print_help
+
+    exit
+elif
+    test "${1}" = "ls" \
+    || test "${1}" = "list" \
+    || test "${1}" = "tree" \
+    || test "${1}" = "dir" \
+    || test "${1}" = "t"
+then
+    # TODO: Update man comments.
+
+    _print_dir_tree
+
+    exit
+elif
+    test "${1}" = "p" \
+    || test "${1}" = "cat" \
+    || test "${1}" = "print"
+then
+    cat "${_dir_notes}/${2}"
+elif
+    test "${1}" = "e" \
+    || test "${1}" = "edit" \
+    || test "${1}" = "open"
+then
+    # TODO: Consider preventing paths with `..` in them at any point.
+    if
+        test -z "${2}"
+    then
+        printf "%s\n" \
+            "No relative file path provided."
+        
+        exit 1
+    fi
+    
+    # Add the `.md` extension if not present.
+    # TODO: Consider removing this so the user can use an extension of their choice, or perhaps provide a command to set a forced extension of their choosing in a config file, and read the chosen extension into variable on script execution.
+    if
+        expr "${2}" : ".*\.md$" >/dev/null
+    then
+        _path_relative="${2}"
+    else
+        _path_relative="${2}.md"
+    fi
+
+    # Open the file in an editor.
+    if
+        test -n "${EDITOR}"
+    then
+        ${EDITOR} "${_dir_notes}/${_path_relative}"
+    else
+        nano "${_dir_notes}/${_path_relative}" \
+        || vim "${_dir_notes}/${_path_relative}"
+    fi
+elif
+    test "${1}" = "mv" \
+    || test "${1}" = "move"
+then
+    # TODO: Abstract this to a function. See identical todo note for other location.
+    if
+        test "${#}" -ne 3
+    then
+        printf "%s\n" \
+            "Error: Invalid number of args." \
+            "See: \`${_script_name} h\` or \`${_script_name} help\`." >&2
+
+        exit 1
+    fi
+
+    _old_path="${_dir_notes}/${2}"
+    _new_path="${_dir_notes}/${3}"
+
+    if
+        test ! -f "${_old_path}"
+    then
+        printf "%s\n" "Error: \`"${_old_path}"\` does not exist or is not a file.\n" >&2
+
+        exit 1
+    fi
+
+    mkdir -p "${_new_path}"
+
+
+    mv -- "${_old_path}" "${_new_path}"
+
+    printf "%s\n" \
+        "Moved \`${_old_path}\` to \`${_new_path}\`."
+
+    _print_dir_tree
+elif
+    test "${1}" = "rn" \
+    || test "${1}" = "rename"
+then
+    # TODO: Abstract this to a function. See identical todo note for other location.
+    if
+        test "${#}" -ne 3
+    then
+        printf "%s\n" \
+            "Error: Invalid number of args." \
+            "See: \`${_script_name} h\` or \`${_script_name} help\`." >&2
+
+        exit 1
+    fi
+
+    _path_old="${2}"
+    _file_name_new="${3}"
+
+    # Check if the argument contains a '/'
+    if
+        expr "${_file_name_new}" : ".*/" >/dev/null
+    then
+        printf "%s\n" "Error: Third arg must be a file name, not a path." >&2
+
+        exit 1
+    fi
+
+    if
+        test ! -f "${_dir_notes}/${_path_old}"
+    then
+        printf "%s\n" "Error: \`"${_dir_notes}/${_path_old}"\` does not exist or is not a file.\n" >&2
+
+        exit 1
+    fi
+
+    mv -- "${_dir_notes}/${_path_old}" "${_dir_notes}/${_path_old}/../${_file_name_new}"
+
+    printf "%s\n" \
+        "Renamed \`${_dir_notes}/${_path_old}\` to \`${_file_name_new}\`."
+
+    _print_dir_tree
+elif
+    test "${1}" = "s" \
+    || test "${1}" = "search" \
+    || test "${1}" = "find"
+then
+    # Search.
+    printf "Not implemented. TODO: Search file names and content, and display in an easy to read format.\n"
+fi

@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# If assumed running under Windows Subsystem for Linux, aka `WSL`.
+if
+    test -n "$(sed -n "/microsoft/p" "/proc/version" 2> /dev/null)" 
+    # test -f /mnt/c/Windows/System32/cmd.exe || which cmd.exe > /dev/null
+then
+    # tput setaf 4
+    # printf "%s\n" "\`${SHELL}\` appears to be running under Windows Subsystem for Linux (WSL)."
+    # printf "%s\n\n" "Importing Windows environment variables with the prefix \`WSL_\`."
+    # tput sgr0
+
+    # # Redirected error:
+    # #     '\\wsl.localhost\Ubuntu\home\user'
+    # #     CMD.EXE was started with the above path as the current directory.
+    # #     UNC paths are not supported.  Defaulting to Windows directory.
+    # cmd.exe /C "echo WSL Installed Distros: & echo & wsl -l -v" 2> /dev/null \
+    # || /mnt/c/Windows/System32/cmd.exe /C "echo WSL Installed Distros: & wsl -l -v" 2> /dev/null
+
+    # if
+    #     cmd.exe /C "wsl -l -v" > /dev/null 2>&1 \
+    #     || /mnt/c/Windows/System32/cmd.exe /C "wsl -l -v" > /dev/null 2>&1
+    # then
+    #     _wsl_ver="[WSL2] "
+    # elif
+    #     cmd.exe /C "wsl --list" | sed "/Windows Subsystem for Linux Distributions:/d" > /dev/null 2>&1 \
+    #     || /mnt/c/Windows/System32/cmd.exe /C "wsl --list" | sed "/Windows Subsystem for Linux Distributions:/d" > /dev/null 2>&1 
+    # then
+    #     _wsl_ver="[WSL1] "
+    # fi
+
+    # # Determine if running under `WSL1` or `WSL2`.
+    # if
+    #     test -n "$(sed -n "/WSL2/p" "/proc/version" 2> /dev/null)"
+    # then
+    #     _wsl_ver=" WSL2"
+    # else
+    #     _wsl_ver=" WSL1"
+    # fi
+
+    # # TODO: Substitiute `C:\` as `/mnt/c`. Where `C` is any english alphabet letter.
+    # # TODO: Might conflict with automatically set `WSL_` prefixed variables.
+    # # TODO: Might already be handled by `WSL2`.
+    # {
+    #     eval \
+    #     "$(
+    #         /mnt/c/Windows/System32/cmd.exe /c SET |
+    #             sed -n \
+    #                 "
+    #                     # Remove carriage return.
+    #                     s/\r//g;
+
+    #                     # Remove illegal POSIX-compliant variable name chars.
+    #                     s/^.*[()].*=.*$//g;
+
+    #                     # # Convert windows path prefixes to WSL format.
+    #                     # s/\(^..*=.*\)[A-Z]:\\\\/\1\//g;
+
+    #                     # Assume backslashes are path dividers and substitute POSIX forward slashes.
+    #                     s/\\\\/\//g;
+
+    #                     # Prepare for export execution.
+    #                     s/\(^..*=\)\(.*$\)/export WSL_\1\"\2\"/g;
+
+    #                     p
+    #                 "
+    #     )"
+    # } \
+    #     >/dev/null 2>&1
+fi

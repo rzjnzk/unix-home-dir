@@ -1,0 +1,94 @@
+#!/bin/sh
+
+# TODO: Escape `sed` special characters in `_remote_name`.
+
+_remote_names=""
+
+for \
+    _arg in "${@}"
+do
+    if
+        test "${_arg}" = "-a" \
+        || test "${_arg}" = "--all"
+    then
+        set --
+
+        for \
+            _remote_dir in "${U_DIR}/config/u/remotes" "${U_DIR}/local/config/u/remotes"
+        do
+            if
+                cd "${_remote_dir}" 2> /dev/null
+            then
+                for \
+                    _remote_name in *
+                do
+                    # shellcheck disable=SC2312
+                    if
+                        test -d "${_remote_name}" \
+                        && test -z "$(printf "%s\n" "${_remote_names}" | sed -n "/^${_remote_name}$/p" 2> /dev/null)"
+                    then
+                        _remote_names="$(printf "%s\n" "${_remote_names}" "${_remote_name}")"
+                    fi
+                done
+            fi
+        done
+
+        break
+    fi
+done
+
+_add_remotes_deduplicate()
+{
+    for \
+        _remote_name in ${1}
+    do
+        # Skip if `_remote_name` is already in `_remote_names`.
+        # shellcheck disable=SC2312
+        if
+            test -z "$(printf "%s\n" "${_remote_names}" | sed -n "/^${_remote_name}$/p" 2> /dev/null)"
+        then
+            _remote_names="$(printf "%s\n" "${_remote_names}" "${_remote_name}")"
+        fi
+    done
+}
+
+for \
+    _arg in "${@}"
+do
+    if
+        test -f "${U_DIR}/local/config/u/remotes/${_arg}"
+    then
+        _add_remotes_deduplicate \
+            "$(
+                # shellcheck disable=SC2312
+                sed \
+                    "/^ *$/d; /^ *#/d; s/^ *//; s/ *$//" \
+                    "${U_DIR}/local/config/u/remotes/${_arg}"
+            )"
+    elif
+        test -d "${U_DIR}/local/config/u/remotes/${_arg}"
+    then
+        _add_remotes_deduplicate "$(printf "%s\n" "${_arg}")"
+    elif
+        test -f "${U_DIR}/config/u/remotes/${_arg}"
+    then
+        _add_remotes_deduplicate \
+            "$(
+                # shellcheck disable=SC2312
+                sed \
+                    "/^ *$/d; /^ *#/d; s/^ *//; s/ *$//" \
+                    "${U_DIR}/config/u/remotes/${_arg}"
+            )"
+    elif
+        test -d "${U_DIR}/config/u/remotes/${_arg}"
+    then
+        _add_remotes_deduplicate "$(printf "%s\n" "${_arg}")"
+    fi
+done
+
+for \
+    _remote_name in $(printf "%s\n" "${_remote_names}")
+do
+    printf "%s\n" "${_remote_name}"
+    printf "x\n"
+done

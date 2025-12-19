@@ -1,0 +1,284 @@
+#!/bin/sh
+#
+# NAME
+#     pkm - alias for `sudo apt install` and `sudo apt remove`, wip: universal package manager
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX-compliant shell.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+#
+# NOTES
+#     Main Repository: <>
+
+# TODO: Implement argument parsing.
+# TODO: Implement interactivity when no arguments are passed.
+# TODO: Implement logging.
+# TODO: Consider haveing a settings file that can be altered using commands.
+
+# GitHub Copilot: Yes, all Debian-based distributions, regardless of their age, should have the `/etc/debian_version` file. This file is part of the base-files package, which is a fundamental part of the system and is always installed.
+
+# The `/etc/debian_version` file contains the version number of the Debian distribution the system is based on. For Debian systems, this will be the Debian version number. For derivatives like Ubuntu, it will be the Debian version that the Ubuntu version was based on.
+
+# However, please note that while this method is generally reliable, it's theoretically possible for a system administrator to remove or modify this file. So, while it's a good heuristic, it's not a 100% foolproof way to determine if a system is Debian-based.
+
+# test -f /etc/debian_version && printf "This system is Debian-based.\n"
+
+# TODO: Support prompting the user to choose the package manager to use for package managers the packages are downloadable from. Consider the multi-package use case. This could be enabled with a flag.
+
+# NOTE: Alternative script names: `installkit`, `install-pkg`, and `installpkg`.
+
+_identify_distribution()
+{
+    _uname="$(uname)"
+
+    if
+        test "${_uname}" = "Linux"
+    then
+        if
+            test -f "/etc/os-release"
+        then
+            _os_release_name="$(\. "/etc/os-release" && printf "%s" "${NAME}")"
+
+            if
+                test "$?" -ne 0
+            then
+                printf "Error sourcing \`/etc/os-release\` with code \`$?\`.\n"
+                test -n "${_os_release_name}" && printf "Error: ${_os_release_name}\n"
+            else
+                _distribution="${_os_release_name}"
+                printf "The value of the \`NAME\` variable in \`/etc/os-release\` is \`${_os_release_name}\`.\n"
+            fi
+        else
+            _distribution="${_uname}"
+            printf "The \`uname\` command outputs \`Linux\`, but \`/etc/os-release\` does not exist, so the distribution could not be read.\n"
+        fi
+    elif
+        test "${_uname}" = "Darwin"
+    then
+        _distribution="macOS"
+    elif
+        test "${_uname}" = "FreeBSD"
+    then
+        _distribution="${_uname}"
+        printf "The \`uname\` command printed \`FreeBSD\`.\n"
+    elif
+        test "${_uname}" = "OpenBSD"
+    then
+        _distribution="${_uname}"
+        printf "The \`uname\` command printed \`OpenBSD\`.\n"
+
+    elif
+        test "${_uname}" = "NetBSD"
+    then
+        _distribution="${_uname}"
+        printf "The \`uname\` command printed \`NetBSD\`.\n"
+
+    elif
+        test "${_uname}" = "SunOS"
+    then
+        _distribution="Solaris"
+        printf "The \`uname\` command printed \`Solaris\`.\n"
+    else
+        _distribution="UNKNOWN"
+        printf "The \`uname\` command printed an unknown name: \`"${_uname}"\`.\n"
+    fi
+
+    printf -- "Assuming distribution \`${_distribution}\`.\n"
+}
+
+_identify_distribution
+
+if
+    test "${1}" = "i" || test "${1}" = "install"
+then
+    _package_manager_arg_1="install"
+elif
+    test "${1}" = "r" || test "${1}" = "remove"
+then
+    _package_manager_arg_1="remove"
+fi
+
+shift
+
+if
+    test "${_distribution}" = "Ubuntu"
+then
+    if
+        test "${_package_manager_arg_1}" = "install"
+    then
+        sudo apt-get update
+    fi
+
+    sudo apt-get "${_package_manager_arg_1}" "${@}"
+fi
+
+
+
+#     Look at existing package managers for command name and format alterations and overlooked functionlity.
+#
+#     Handle installing specific versions.
+#
+#     For any command, if `-y` is not specified, check if any packages in `./script-name.d/packages` are not installed by the source specified in the file and prompt the user to install all of or a selection of them.
+#
+#     `search command-name`
+#     -> Updates package list and searches in locations in order of commonality and precednace:
+#     local, default package manager, npm, etc.
+#
+#     `i/install -y(?) -s/--save --nu/--no-update ---a/--auto/-d/--default(?) package_name_1(?) package_name_n(?)`
+#     -> Updates package list, if `--no-update` was not specified, then installs packages in auto mode, whether specified or not as long as no specific package manager flags are present.
+#     `install -y(?) -s/--save --nu/--no-update --specific-package-manager-1 package_name_1 package_name_n(?) --specific-package-manager-1 package_name_n+1 package_name_n+n2(?) -a/--auto/-d/--default package_name_n+n2+1 package_name_n+n2+n3`
+#     -> Updates package list, if `--no-update` was not specified, then installs packages using the specified package manager for each package.
+#     Install command format shared functionality:
+#     When `-s/--save` is specified, add the package to `./script-name.d/packages`, along with its source if not installed in auto mode, if the installation completes correctly.
+#
+#     `r/rm/remove -y(?) -s/--save package_name_1(?) package_name_n(?)`
+#     -> Looks for multiple installations, but prints the default, if there are multiple, prompt the user for which to remove, if there is only one, remove it.
+#     -> Removes packages.
+#     -> When `-s/--save` is specified, remove packages that are successfully removed from `./script-name.d/packages`, along with it source if not installed in auto mode, and add them to `./script-name.d/packages-removed`.
+#
+#     `u/upgrade package_name_1(?) package_name_n(?)`
+#     -> Upgrades specified packages. If no package was specified, upgrade all packages.
+#
+#
+#     `path` or `path l/list`
+#     -> List `PATH` entries in order, seperated by newline characters.
+#     Indicate the origin of each value: `~/.profile`, `~/.bashrc`, `~/.zshrc`, `./script-name.d/path/start`, `./script-name.d/path/end`, etc.
+#     -> List the contents of `./script-name.d/path/overrides`.
+#     -> Prompt the user with other `path` subcommands.
+#
+#     `path a/add -t/--temp/--temporary(?) dir_absolute_or_relative_1 dir_absolute_or_relative_n`
+#     -> If the temporary flag is included, do not write path changes to files.
+#     -> Check whether the absolute paths to the files exist in the `PATH` environment variable per specified dir.
+#     -> If there are duplicate entries in the `PATH`, per specified dir,
+#     List the entries in the path in order, seperated by newline characters, and
+#     indicate the location of the duplicate entries past the first occorance, and
+#     remove the duplicate entries
+#     -> If the specified dir is not in the `PATH`, it to the `PATH` environment variable directly, and
+#     append it to a new line in `./script-name.d/path/start` or `./script-name.d/path/end`. NOTE: Consider prompting the user for the position in which it should be added, consider the affect of other path values changing.
+#
+#     `path r/rm/remove -t/--temp/--temporary(?) package_name_1(?) package_name_n(?)`
+#     -> If the temporary flag is included, do not write path changes to files.
+#     -> Use `sed` to remove the specified dirs from the `PATH` environment variable, and
+#     use `sed` to remove the specified dirs from the `./script-name.d/path/start` and `./script-name.d/path/end` file.
+#
+#     `path o/override package_name_1(?) package_name_n(?)`
+#     -> Issue any warnings.
+#     -> Add the specified direcotries to newlines in `./script-name.d/path/overrides`.
+#     -> Remove overridden directories from the `PATH` environment variable directly.
+#     -> TODO: Functionality should be added to `~/.profile` to iterate the lines.
+#     -> TODO: Decide where the overrides are removed from the `PATH` environment variable. Perhapse at the end of each file that is sources when a terminal is opened, or the last script to be executed on terminal sessions creation, examples: `~/.profile`, `~/.bashrc`, `~/.zshrc`, etc. Consider how this would affect the `path-start` `path-end` division. Consider how this would affect different terminal modes, interactive and otherwise, and how it would affect other prcesses. Issue any warnings before adding the overrides. Perhapse use multiple override files for different scripts.
+
+# _get_default_package_manager()
+# {
+#     _command_pkg_manager="$(command -v apt-get >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# }
+
+# if
+#     _command_pkg_manager="$(command -v apt-get >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     apt-get update
+#     apt-get install example-package
+# elif
+#     _command_pkg_manager="$(command -v yum >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     yum update
+#     yum install example-package
+# elif
+#     _command_pkg_manager="$(command -v dnf >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     dnf update
+#     dnf install example-package
+# elif
+#     _command_pkg_manager="$(command -v zypper >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     zypper refresh
+#     zypper install example-package
+# elif
+#     _command_pkg_manager="$(command -v pacman >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     pacman -Sy
+#     pacman -S example-package
+# elif
+#     _command_pkg_manager="$(command -v emerge >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     emerge --sync
+#     emerge example-package
+# elif
+#     _command_pkg_manager="$(command -v pkg >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     pkg update
+#     pkg install example-package
+# elif
+#     _command_pkg_manager="$(command -v xbps-install >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     xbps-install -Su
+#     xbps-install example-package
+# elif
+#     _command_pkg_manager="$(command -v apk >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     apk update
+#     apk add example-package
+# elif
+#     _command_pkg_manager="$(command -v nix-env >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     nix-channel --update
+#     nix-env -i example-package
+# elif
+#     _command_pkg_manager="$(command -v brew >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     brew update
+#     brew install example-package
+# elif
+#     _command_pkg_manager="$(command -v port >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     port selfupdate
+#     port install example-package
+# elif
+#     _command_pkg_manager="$(command -v pkg_add >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     pkg_add -u
+#     pkg_add example-package
+# elif
+#     _command_pkg_manager="$(command -v pkgin >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     pkgin update
+#     pkgin install example-package
+# elif
+#     _command_pkg_manager="$(command -v pkgtool >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     echo "pkgtool does not support automatic updates or installations"
+# elif
+#     _command_pkg_manager="$(command -v swupd >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     swupd update
+#     swupd bundle-add example-package
+# elif
+#     _command_pkg_manager="$(command -v guix >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     guix pull
+#     guix package -i example-package
+# elif
+#     _command_pkg_manager="$(command -v opkg >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     opkg update
+#     opkg install example-package
+# elif
+#     _command_pkg_manager="$(command -v pkgsrc >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     cd /usr/pkgsrc/pkgtools/pkg_install && make install clean clean-depends
+#     pkg_add example-package
+# elif
+#     _command_pkg_manager="$(command -v slackpkg >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     slackpkg update
+#     slackpkg install example-package
+# elif
+#     _command_pkg_manager="$(command -v sorcery >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"
+# then
+#     sorcery update
+#     cast example-package
+# elif _command_pkg_manager="$(command -v urpmi >/dev/null 2>&1)" & test -x "${_command_pkg_manager}"

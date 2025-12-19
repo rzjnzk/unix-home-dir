@@ -1,0 +1,121 @@
+#!/bin/sh
+#
+# NAME
+#
+# DESCRIPTION
+#
+# COMMANDS
+#
+# DEPENDENCIES
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+#
+# NOTES
+#
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd "$(dirname -- "${0}")" && pwd)"
+
+_i=0
+
+for \
+    _path in "${HOME}/bin/"*
+do
+    # Skip if the script is not a file, or if the script is the current script.
+    # TODO: Check if replacing the functionality of `!` in the `test` invokationm with somethign else will increase portability.
+    # TODO: Consider `! test -f "${_path}"`.
+    if
+        test ! -f "${_path}" \
+        || test -z "$(
+                printf "%s" "${_path}" \
+                    | sed -n \
+                        "
+                            /\.old\$/d;
+                            p;
+                        "
+            )" \
+        || test "${_path}" = "${_script_path}/${_script_name}"
+    then
+        continue
+    fi
+        # _comment_section_name="$(
+        #         sed -n \
+        #             "
+        #                 /^# NAME *$/,/^# [^ ]/ \
+        #                 {
+        #                     /^# [^ ]/d;
+        #                     s/^# *\(.*\)/\1/g;
+        #                     p;
+        #                 }
+        #             " \
+        #             "${_script}"
+        #     )"
+
+        _i="$(expr "${_i}" + 1)"
+
+        # Print the script name.
+        tput setaf 4
+        # printf "%s" "${_i}. " "$(basename "${_path}")"
+        printf "%s" "$(basename "${_path}")"
+        tput sgr0
+
+        # Get the script description.
+        # Get the text from the line after the line starting with `# NAME` followed by any amount of spaces, extract only the text after the last occurence of ` - `.
+        _comment_section_name_description="$(
+                sed -n \
+                    "
+                        /^# NAME *$/ \
+                        {
+                            n;
+
+                            / - / \
+                            {
+                                s/^.* - //p;
+                            }
+                        }
+                    " \
+                    "${_path}"
+            )"
+
+        # Print the script description if it was found.
+        if
+            test -n "${_comment_section_name_description}"
+        then
+            tput dim
+            printf " - "
+            printf "%s" "${_comment_section_name_description}"
+            tput sgr0
+        fi
+
+        printf "\n"
+
+        # # If the script has a name comment, and it is not blank.
+        # if
+        #     # test -n "$(printf "%s" "${_comment_section_name}" | sed "/[^ \\t]/p")"
+        #     test -n "${_comment_section_name}"
+        # then
+        #     printf "%s\n" "${_comment_section_name}"
+        # else
+        #     printf "%s\n" "$(basename "${_script}")"
+        # fi
+done
+
+# /[^[:space:]]/,/^[[:space:]]*$/!d;
+
+# sed -n "/^# DESCRIPTION *$/,/^# *$/ {
+#     s/^# //g;
+#     s/^#//g;
+#     p
+# }" ~/bin/build
+
+
+# cat "${_script_path}/${_script_name}" \
+# | sed -n "/^# DESCRIPTION *$/,/^# [^ ]$/ { s/^# //g ; s/^#//g ; p }"
+
+
+# cat "${_script_path}/${_script_name}" 
+# | sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }"
+

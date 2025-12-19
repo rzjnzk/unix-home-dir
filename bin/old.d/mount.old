@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# printf "%s\n" "This script is not in a working state."
+# exit 1
+
+# Get partitions and filesystem types in CSV format.
+_partitions_info=$(
+    powershell.exe -Command \
+        "
+            Get-Partition \
+            | Select-Object DiskNumber, PartitionNumber, Type \
+            | ConvertTo-Csv -NoTypeInformation
+        " \
+        | sed "s/\\r//g"
+)
+
+# Initialize menu.
+_menu=""
+
+# Initialize counter.
+_counter=1
+
+# Print header.
+printf "Available drives and partitions:\n"
+
+# Skip the header line.
+_header_skipped=false
+
+# Use a here-document to read partitions_info.
+while \
+    IFS= read -r line
+do
+    if
+        ! ${_header_skipped}
+    then
+        _header_skipped=true
+
+        continue
+    fi
+
+    # Remove quotes.
+    _line=$(echo "${_line}" | tr -d "\"")
+
+    # Read the CSV fields.
+    IFS="," read -r _disk_number _partition_number _type <<EOF
+$_line
+EOF
+    # Print the option.
+    echo "${_counter}) Disk ${_disk_number}, Partition ${_partition_number}, Type: ${_type}"
+
+    # Append to menu.
+    _menu="${_menu}${_counter}:${_disk_number}:${_partition_number}:${_type}\n"
+    _counter=$((_counter + 1))
+done <<EOF
+${_partitions_info}
+EOF
+
+# Prompt user for selection.
+printf "\nEnter the numbers of the partitions to mount (space-separated): "
+read _selections
+
+# For each selection, find the corresponding disk and partition.
+
+IFS=' '
+
+for \
+    _selection in ${_selections}
+do
+    # Find the corresponding line in the menu.
+    _line=$(echo -e "${_menu}" | grep "^${_selection}:")
+
+    if
+        test -n "${line}"
+    then
+        # Parse the line.
+        _disk_number=$(echo "${_line}" | cut -d':' -f2)
+        _partition_number=$(echo "${_line}" | cut -d':' -f3)
+        _type=$(echo "${_line}" | cut -d':' -f4)
+        _fs_type=$(echo "${_type}" | tr '[:upper:]' '[:lower:]')
+
+        # Mount the partition.
+        echo "Mounting Disk ${_disk_number}, Partition ${_partition_number} with type ${_fs_type}"
+        wsl --mount "\\.\PHYSICALDRIVE${_disk_number}" --partition "${_partition_number}" --type "${_fs_type}"
+    else
+        echo "Invalid selection: ${_selection}"
+    fi
+done

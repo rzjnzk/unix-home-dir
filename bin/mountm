@@ -1,0 +1,299 @@
+#!/bin/sh
+#
+# NAME
+#     mountm - mount manager
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+## BEGIN BUNDLE LIBS ##
+\. "${_script_path}/lib.d/set-ifs.sh"
+## END BUNDLE LIBS ##
+
+_get_partition_index()
+{
+    _pattern_prefix=""
+
+    _i=0
+
+    while \
+        test "${_i}" -lt "${1}"
+    do
+        _pattern_prefix="${_pattern_prefix}[^|]*|"
+        _i=$((_i + 1))
+    done
+    
+    printf "%s" "${_partition}" | sed -n "s/${_pattern_prefix}\\([^|]*\\).*$/\\1/p"
+}
+
+_generate_dots() 
+{
+    _n=$1  # Number of dots needed
+    _result=""
+    _i=1
+    while [ $_i -le $_n ]; do
+        _result="${_result}."
+        _i=$((_i + 1))
+    done
+    printf '%s*' "$_result"
+}
+
+_indent="    "
+
+# Get partitions information.
+_partitions="$(
+    powershell.exe -Command \
+        "
+            \$counter = 1
+            Get-Partition | ForEach-Object \
+            { 
+                \$vol = Get-Volume -Partition \$_ -ErrorAction SilentlyContinue; \
+                Write-Output \"\$counter|\$(\$_.DiskNumber)|\$(\$_.PartitionNumber)|\$(\$_.Type)|\$(\$_.PartitionSize)|\$(\$_.DriveLetter)|\$(\$vol.FileSystemLabel)|\$(\$_.Guid)\"; \
+                \$counter++; \
+            }
+        " \
+        | sed "s/\\r$//g"
+)"
+
+powershell.exe -Command "GET-CimInstance -query \"SELECT * from Win32_DiskDrive\""
+powershell.exe -Command "Get-Disk | Select-Object -Property * -ExcludeProperty ObjectId"
+
+printf "\nAvailable drives and partitions:\n\n"
+
+# Read the partitions info from the variable.
+printf "%s\n" "${_partitions}" \
+| while \
+    IFS="|" read -r _counter _disk_number _partition_number _type _partition_size _drive_letter _label _guid
+do
+    # Print the option.
+    printf "%s\n" \
+        "(${_counter})" \
+        "${_indent}Disk number: ${_disk_number}" \
+        "${_indent}Partition number: ${_partition_number}" \
+        "${_indent}File system type: ${_type}" \
+        "${_indent}Partition size: ${_partition_size}" \
+        "${_indent}Drive letter: ${_drive_letter}" \
+        "${_indent}Partition label: ${_label}" \
+        "${_indent}GUID: ${_guid}"
+    printf "\n"
+done
+
+while \
+    :
+do
+    # Prompt user for selection.
+    printf "\nEnter the number of the partition to mount: "
+    read _selection
+    printf "\n"
+
+    _selection="$(printf "%s" "${_selection}" | sed "s/ /\n/g")"
+
+    if \
+        test -z "$(printf "%s" "${_selection}" | sed "/^[0-9][0-9]*$/d")"
+    then
+        break
+    else
+        printf "Invalid selection: input must be an integer.\n"
+    fi
+done
+
+# # Find the selected partition details.
+# _selected_line="$(printf "%b" "${_menu}" | grep "^${_selection}:")"
+
+# IFS=':' read -r _sel_counter _disk_number _partition_number _type <<EOF
+# ${_selected_line}
+# EOF
+
+# Only split on new lines, not on spaces or tabs.
+
+# IFS="$(printf "\nx")"
+# IFS="$(printf "%s" "$(printf "\nx")" | sed "s/^\\(.\\).*/\\1/")"
+_lib__set_ifs newline
+
+for \
+    _partition in ${_partitions}
+do
+    if
+        # ! test "$(_get_partition_index 0)" -eq "${_selection}"
+        test -z "$(printf "%s" "${_selection}" | sed -n "/^$(_get_partition_index 0)$/p")"
+    then
+        continue
+    fi
+    
+    _disk_number="$(_get_partition_index 1)"
+    _partition_number="$(_get_partition_index 2)"
+    _type="$(_get_partition_index 3)"
+
+    _is_try_again=true
+
+    while \
+        test "${_is_try_again}" = true
+    do
+        # Mount the partition.
+
+        _is_taken_offline_by_script=false
+
+        # TODO: Store partition info in variable before bare mounting drive.
+
+        # TODO: Warn the user of the dangers of taking the disk offline.
+        # TODO: Safely unmount any partitions from Windows first.
+
+        if 
+            ! wsl.exe --mount "\\\\.\\PHYSICALDRIVE${_disk_number}" --bare
+        then
+            printf "%s\n" \
+                "Error: Manual intervention required. Failed to mount drive with the following command." \
+                "${_indent}- \`wsl.exe --mount \"\\\\.\\PHYSICALDRIVE${_disk_number}\" --bare\`"
+
+            exit 1
+        fi
+
+        # Determine filesystem type, else prompt the user for an explicit value.
+        # TODO: Print changes in partition info output with new additions highlighted.
+        # TODO: If possible, also find a way to automate partition device and fs type selection, and only use manual fs type prompting as a fallback. 
+        # TODO: Update with unix-like filesystem type names if switching from windows partition listing to unix-like partition listing. `EFI` is a windows filesystem type.
+        if
+            test -n "$(printf "%s" "${_type}" | sed -n "/EFI/p")"
+        then
+            _type="vfat"
+        # TODO: Update with unix-like filesystem type names if switching from windows partition listing to unix-like partition listing. `Basic` is a windows filesystem type.
+        elif
+            test -n "$(printf "%s" "${_type}" | sed -n "/^Basic$/p")"
+        then
+            _type="ntfs"
+        else
+            # Prompt the user for an explicit value.
+
+            printf "%s\n" \
+                "Cannot determine filesystem type for partition." \
+                "" \
+                "Some supported filesystem types:" \
+                "" \
+                "\`ext4\`, \`ext3\`, \`ext2\` (Linux Extended filesystems)" \
+                "\`ntfs\` - Windows NTFS" \
+                "\`vfat\` - FAT32/exFAT" \
+                "\`btrfs\`- BetterFS, B-tree FS" \
+                "\`xfs\` - XFS" \
+                "\`squashfs\` - SquashFS" \
+                "\`tmpfs\` - Temporary FS" \
+                "\`overlay\` - Overlay FS" \
+                ""
+
+            printf "Enter filesystem type: "
+            read _type
+            printf "\n"
+        fi
+
+        # Try to mount the partition.
+        # If successful, continue to the next partition to mount if there is one.        
+        if
+            powershell.exe -Command "wsl --mount \"\\\\.\\PHYSICALDRIVE${_disk_number}\" --partition \"${_partition_number}\" --type \"${_type}\""
+        then
+            break
+        fi
+
+        # Mount failed.
+
+        # if
+        #     test -n "$(ls -a /mnt/wsl | sed "/^PHYSICALDRIVE${_disk_number}p${_partition_number}/ p; d")"
+        # then
+        #     if
+        #         ! wsl.exe --unmount "\\\\.\\PHYSICALDRIVE${_disk_number}"
+        #     then
+        #         printf "%s\n" \
+        #             "Manual intervention required. Failed to detach the disk." \
+
+        #         exit 1
+        #     elif
+        #         ! sudo rmdir -v "/mnt/wsl/PHYSICALDRIVE${_disk_number}"
+        #     then
+        #         printf "%s\n" \
+        #             "Manual intervention required. Failed to remove \`/mnt/wsl/PHYSICALDRIVE${_disk_number}\`." \
+        #             "Some possible causes:" \
+        #             "${_indent}- \`mkdir\` threw an unexpected error." \
+        #             "${_indent}- The user does not have \`sudo\` privileges." \
+        #             "${_indent}- The user entered an incorrect \`sudo\` password." \
+        #             "${_indent}- The user does not have permission to remove the directory." \
+        #             "${_indent}- The directory is in use by another process." \
+        #             "${_indent}- The directory is unexpectadly mounted." \
+        #             "${_indent}- Files were unexpectedly moved to the directory by the user or another process." \
+        #         exit 1
+        #     fi
+        # fi
+
+
+        printf "%s\n\n" "Failed to mount the partition. You may have selected the wrong file system type."
+        printf "Would you like to try again? (Y/n): "
+        read _user_input_try_again
+
+        if
+            test -z "${_user_input_try_again}" \
+            || test "${_user_input_try_again}" = "y" \
+            || test "${_user_input_try_again}" = "Y"
+        then
+            # Clear fs type so that the user is prompted for its value.
+            _type=""
+
+            # Check if the disk is already offline before asking the user if they want to take it offline.
+            # TODO: Add the ability to take windows-recognized partitions offline instead of the whole disk before trying taking the whole disk offline.
+            if
+                test -z "$(powershell.exe -Command "Get-Disk -Number \"${_disk_number}\" | Select-Object -ExpandProperty OperationalStatus" | sed -n "/Offline/p")"
+            then
+                printf "%s\n" \
+                    "Warning: Taking the disk offline:" \
+                    "${_indent}- Unmounts all volumes/partitions on the disk" \
+                    "${_indent}- Makes the entire disk inaccessible to Windows." \
+                    "${_indent}- Affects all file systems/partitions regardless of their type." \
+                    "${_indent}- May cause data loss if any of the partitions are in use." \
+                    "${_indent}- However, it may help wsl mount the partition." \
+                    "" \
+
+                printf "Would you like to take the disk offline before trying again? (y/N): "
+                
+                read _user_input_disk_offline
+
+                if 
+                    test "${_user_input_disk_offline}" = "y" \
+                    || test "${_user_input_disk_offline}" = "Y"
+                then
+                    # Take the disk offline.
+                    powershell.exe -Command "Set-Disk -Number \"${_disk_number}\" -IsOffline \$True"
+
+                    _is_taken_offline_by_script=true
+                fi
+            fi
+        else
+            _is_try_again=false
+        fi
+
+        if
+            test "${_is_try_again}" = false \
+            && test "${_is_taken_offline_by_script}" = true \
+            && test -n "$(powershell.exe -Command "Get-Disk -Number \"${_disk_number}\" | Select-Object -ExpandProperty OperationalStatus" | sed -n "/Offline/p")"
+        then
+            printf "Would you like to bring the disk back online before continuing? (Y/n): "
+                
+            read _user_input_disk_offline
+
+            if 
+                test -z "${_user_input_disk_offline}" \
+                || test "${_user_input_disk_offline}" = "y" \
+                || test "${_user_input_disk_offline}" = "y"
+            then
+                # Take the disk offline.
+                powershell.exe -Command "Set-Disk -Number \"${_disk_number}\" -IsOffline \$False"
+            fi
+        fi
+        
+        printf "\n"
+    done
+
+    printf "Success.\n"
+done

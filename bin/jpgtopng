@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -e
+
+# TODO: Untested.
+# TODO: Make script more flexible generally.
+
+# TODO: Replace this logic with package manager wrapper script logic, currently located at `~/bin/pkm`, once implemented.
+if
+    ! command -v convert >/dev/null 2>&1
+then
+    if
+        ! sudo apt-get install -y imagemagick
+    then
+        printf "%s\n" "Error: Failed to install \`imagemagick\`, install it manually." 1>&2
+        exit 1
+    fi
+fi
+
+mkdir -p "${2}"
+
+if
+    test -d "${1}" || test -d "${2}" 
+then
+    find "${1}" -type f \( -iname "*.jpg" -o -iname "*.jpeg" \) \
+    | while 
+        read -r _file
+    do
+        _file_output="${2}/$(basename "${_file}" | sed "s/\\.[^.]*$//").png"
+        
+        convert "${_file}" "${_file_output}"
+
+        printf "%s\n" "Converted: \"${_file}\" -> \"${_file_output}\"."
+    done
+elif
+    test -f "${1}" || { test -f "${2}" || test -d "${2}" ; }
+then
+    _file_output="$(basename "${1}" | sed "s/\\.[^.]*$//").png"
+    
+    if
+        test -d "${2}"
+    then
+        _file_output="${2}/${_file_output}"
+    fi
+
+    convert "${1}" "${_file_output}"
+
+    printf "%s\n" "Converted: \"${_file}\" -> \"${_file_output}\"."
+else
+    printf "%s\n" \
+        "Error: Invalid input or output directory." \
+        "Usage: ${0} <INPUT_DIRECTORY> <OUTPUT_DIRECTORY>" 1>&2
+
+    exit 1
+fi

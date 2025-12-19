@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# NAME
+#     define - search dictionary and thesaurus 
+
+set -e
+
+# _script_name="$(basename -- "${0}")"
+# _script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+_indent="    "
+
+for \
+    _word in "$@"
+do
+    printf "%s\n" \
+        "" \
+        "WORD:" \
+        "" \
+        "${_indent}${_word}" \
+        "" 
+
+    printf "%s\n\n" "DEFINITION:"
+    curl -s "https://api.dictionaryapi.dev/api/v2/entries/en/${_word}" \
+    | jq -r ".[0].meanings[] | .partOfSpeech + \": \" + (.definitions[0].definition)" \
+    | sed "s/^/${_indent}/"
+
+    printf "\n%s\n\n" "SYNONYMS:"
+
+    curl -s "https://api.datamuse.com/words?rel_syn=${_word}" \
+    | jq -r ".[].word" | head -10 \
+    | sed "s/^/${_indent}/"
+done

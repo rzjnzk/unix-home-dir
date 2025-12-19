@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# NAME
+#     mkdircd - alias for `mkdir -pv <RELATIVE_PATH> && cd <RELATIVE_PATH>`
+
+set -e
+
+mkdir -pv "${1}"
+
+cd "${1}"

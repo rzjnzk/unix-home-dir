@@ -1,107 +1,229 @@
 #!/bin/sh
+#
+# NAME
+#   l - ls alternative with additional information
+#
+# DESCRIPTION
+#     A syntax highlighted and more verbose ls alternative.
+#
+# AUTHOR
+#     Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
 
-# Description: A syntax highlighted and more verbose ls alternative.
-# Author: Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+# TODO: Write logic for `l - syntax highlighted and more verbose ls alternative`.
 
-_sed_colourise_permissions()
+set -e
+
+# If "${1}" is not set or is empty, reset positional parameters, with the first being `.`.
+if
+    test -z "${1}"
+then
+    set "." "${@}"
+fi
+
+# shellcheck disable=SC2120
+_eza()
 {
-    printf -- "%s" \
-        "s/r/$(tput setaf 2)r$(tput sgr0)/g;" \
-        "s/w/$(tput setaf 5)w$(tput sgr0)/g;" \
-        "s/x/$(tput setaf 1)x$(tput sgr0)/g"
+    # shellcheck disable=SC2086
+    eza \
+        --long \
+        -aa \
+        --group \
+        --time-style="+%Y/%m/%d %H:%M:%S" \
+        --git \
+        --icons \
+        --color=always \
+        --color-scale \
+        --hyperlink \
+        --header \
+        --links \
+        --mounts \
+        --flags \
+        --extended \
+        --git-repos \
+        --classify \
+        "${@}"
 }
 
-_main()
+# shellcheck disable=SC2120
+_ls_colorized()
 {
-    # _detailed_ls_of_given_dir=$(ls -all --format=single-column --classify --color=none ${@})
-
-    _current_dir="$(pwd)"
-
-    test ${@} || set -- "."
-
-    # IFS=$'\n'
-
-    for _dir in \
-    "${@}"
-    do
-        cd "${_dir}"
-
-        _output=""
-
-        _output="NAME \tSIZE \tPERMISSIONS \tMODIFIED\n"
-        _output="${_output}---- \t---- \t----------- \t--------\n"
-
-        _dir_contents="$(ls --all --format=single-column --color=none)"
-
-        for _item in ${_dir_contents}
-        do
-            _output="${_output}$(stat --dereference --printf="%n \t%s \t%A/%a \t" "${_item}")"
-            _output="${_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")\n"
-        done
-
-        printf -- "$(pwd):\n\n$(printf -- "${_output}" | pr --columns=4 --omit-header -J --sep-string)\n\n\n"
-    done
-
-    # unset IFS
-
-    cd ${_current_dir}
+    # NOTE: Short options are used for maximum portability.
+    # shellcheck disable=SC2086
+    ls \
+        -laF \
+        --color=auto \
+        "${@}"
 }
 
-# TODO: Fix column formatting before deleteing the temporary redefine.
-_main()
+# shellcheck disable=SC2120
+_ls()
 {
-    ls -la "${@}"
+    # NOTE: Short options are used for maximum portability.
+    # shellcheck disable=SC2086
+    ls \
+        -laF \
+        "${@}"
 }
 
-# set -e
-# _script_name="$(basename -- "${0}")"
-# _script_path="$(dirname -- "${0}")"
-# _script_path="$(cd "${_script_path}" ; pwd)"
-# _script_args="$(printf -- "%s\n" "${@}")"
-# mkdir -p -- "${_script_path}/${_script_name}-logs"
-_main "${@}" # | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+_command_ls_selected=""
 
-# _main ()
-# {
-#     # _detailed_ls_of_given_dir=$(ls -all --format=single-column --classify --color=none ${@})
-#
-#     _current_dir="$(pwd)"
-#
-#     if [ -z ${@} ]
-#     then
-#         set -- "."
-#     fi
-#
-#     _output=""
-#
-#     IFS=$'\n'
-#
-#     for _dir in ${@}
-#     do
-#         cd "${_dir}"
-#         printf "$(pwd):\n\n"
-#
-#         #_output="${_output}NAME SIZE PERMISSIONS MODIFIED\n"
-#         #_output="${_output}---- ---- ----------- --------\n"
-#
-#         _dir_contents="$(ls -all --format=single-column --color=none)"
-#
-#         for _item in ${_dir_contents}
-#         do
-#             _output="${_output}$(stat --dereference --printf="%n " "${_item}")"
-#             _output="${_output}$(stat --dereference --printf="%s " "${_item}")"
-#             _output="${_output}$(stat --dereference --printf="%A_%a " ${_item}")" # | sed "$(_sed_colourise_permissions)"
-#             _output="${_output}$(stat --dereference --printf="%y" "${_item}" | sed "s/.\{16\}$//")"
-#             _output="${_output}\n"
-#         done
-#
-#         unset
-#     done
-#
-#     unset IFS
-#
-#     _output="$(printf "${_output}" | column -t)"
-#
-#     printf "${_output}"
-#
-#     cd ${_current_dir}
+# Determine which `ls` command to use.
+if
+    _eza > /dev/null 2>&1
+then
+    # --group-directories-first
+    #     List directories before other files.
+    # --group-directories-last
+    #     List directories after other files.
+    # --total-size
+    #     Show recursive directory size (unix only).
+    # NOTE: Installation instructions: `https://github.com/eza-community/eza/blob/main/INSTALL.md`.
+    _command_ls_selected="_eza"
+elif
+    _ls_colorized > /dev/null 2>&1
+then
+    _command_ls_selected="_ls_colorized"
+elif
+    _ls > /dev/null 2>&1
+then
+    _command_ls_selected="_ls"
+else
+    printf "Error: No suitable \`ls\` command found.\n" >&2
+
+    exit 1
+fi
+
+for \
+    _arg in "${@}"
+do
+    # If arg starts with '-', consider it a flag.
+    case \
+        "${_arg}"
+    in
+        -* \
+        )
+            _flags="${_flags} ${_arg}"
+            shift
+        ;;
+    esac
+done
+
+# _first_iteration=true
+
+for \
+    _arg in "${@}"
+do
+    # if
+    #     test "${_first_iteration}" = true
+    # then
+    #     _first_iteration=false
+    # else
+    #     printf "\n\n"
+    # fi
+
+    tput setaf 4
+    printf "Path: "
+    tput sgr0
+
+    if
+        test "${_arg}" = "."
+    then
+        pwd
+    else
+        stat -c "%n" "${_arg}"
+    fi
+
+    tput setaf 4
+    printf "File Type: "
+    tput sgr0
+    stat -c "%F" "${_arg}"
+
+    tput setaf 4
+    printf "Access: "
+    tput sgr0
+    stat -c "%x" "${_arg}"
+
+    tput setaf 4
+    printf "Modify: "
+    tput sgr0
+    stat -c "%y" "${_arg}"
+
+    tput setaf 4
+    printf "Change: "
+    tput sgr0
+    stat -c "%z" "${_arg}"
+
+    tput setaf 4
+    printf "Birth: "
+    tput sgr0
+    stat -c "%w" "${_arg}"
+
+    tput setaf 4
+    printf "Size: "
+    tput sgr0
+    stat -c "%s bytes" "${_arg}"
+
+    tput setaf 4
+    printf "Mount Point: "
+    tput sgr0
+    stat -c "%m" "${_arg}"
+
+    printf "\n"
+
+    if
+        command -v git > /dev/null 2>&1
+    then
+        git -C "${_arg}" log -1 --oneline --decorate=full --color=always
+        printf "\n"
+
+        # Only display if using `ls` since `eza` displays this information.
+        if
+            {
+                test "${_command_ls_selected}" = "_ls" \
+                || test "${_command_ls_selected}" = "_ls_colorized"
+            } \
+            && command -v git > /dev/null 2>&1
+        then
+            # NOTE: `check-ignore` was introduced in Git version 1.8.2, which was released in March 2013 [fact check this].
+            # NOTE: An exit code of 0 means working dir is a `git` version controlled directory that is ignored.
+            # NOTE: An exit code of 1 means working dir is a `git` version controlled directory that is not ignored.
+            # NOTE: An exit code of 128 means working dir is not a `git` version controlled directory.
+            # NOTE: An exit code of 127 means `git` is not installed or the installed version of `git` does not support `check-ignore`.
+            git -C "${_arg}" check-ignore -q "${_arg}" > /dev/null 2>&1 \
+            || _exit_code__git_check_ignore="$?"
+
+            # If working dir is an ignored `git` version controlled directory.
+            if
+                test "${_exit_code__git_check_ignore}" = 0
+            then
+                printf "%s" "Ignored by git: "
+                tput setaf 1
+                printf "%s\n\n" "true"
+                tput sgr0
+            elif
+                test "${_exit_code__git_check_ignore}" = 1
+            then
+                printf "%s" "Ignored by git: "
+                tput setaf 2
+                printf "%s\n\n" "false"
+                tput sgr0
+            # elif
+            #     test "${_exit_code__git_check_ignore}" = 128
+            # then
+            #     #
+            # elif
+            #     test "${_exit_code__git_check_ignore}" = 127
+            # then
+            #     #
+            fi
+        fi
+    fi
+
+    # Execute the selected `ls` command.
+    # shellcheck disable=SC2086
+    ${_command_ls_selected} ${_flags} ${_arg}
+
+    # # shellcheck disable=SC2086
+    # ${_command_ls} ${_flags} ${_arg}
+    # sh -c "${_command_ls} ${_flags} ${_arg}"
+done || :

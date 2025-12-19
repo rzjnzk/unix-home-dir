@@ -1,0 +1,131 @@
+#!/bin/sh
+
+set -e
+
+# TODO: Consider using `gh` `--jq` formatting to print data in a format that is easily parsable by sed, and using sed to pretty-print and colorize.
+# TODO: Colorize the repo name differently for repos that are cloned locally.
+# TODO: Consider any further speed optomizations that might be possible, specifically relating to the while loop and it's scope. Consider using the `${HOME}/lib.d/colors.sh` lib, and consider alternate implementations of that lib.
+
+# If the `${_gitm_dir_repositories_user}` environment variable is not set, set it to the default directory.  
+if 
+    test -z "$(printf "%s" "${GITM_DIR_REPOSITORIES}")"
+then
+    # _gitm_dir_repositories_user="${HOME}/wd/github.com/$(gh api user --jq ".login")"
+    GITM_DIR_REPOSITORIES="${HOME}/wd/github.com"
+fi
+
+# _local_repository_dirs="$(find "${GITM_DIR_REPOSITORIES}" -mindepth 2 -maxdepth 2 -type d)"
+
+_page_no=1
+
+while 
+    :
+do
+    # Fetch a page of repositories and format them.
+    _page_content="$(
+        gh api "user/repos?type=all&per_page=100&page=${_page_no}" --jq \
+            "
+                map(
+                    select(.permissions.push == true and .permissions.pull == true)
+                ) |
+                sort_by(.owner.login, .name)[] |
+                \"O\(.owner.login)\\n\"
+                + \"N\(.name)\\n\"
+                + \"V\(.visibility)\\n\"
+                + \"D\(.description)\\n\"
+                + \"U\(.html_url)\"
+            " \
+            | while
+                IFS="" read -r _line
+            do
+                _first_char="$(printf "%s" "${_line}" | dd bs=1 count=1 2>/dev/null)"
+                _value="$(printf "%s" "${_line}" | sed "s/^.\(.*\)/\1/")"
+
+                if
+                    test "${_first_char}" = "O"
+                then
+                    _owner="${_value}"
+                    
+                    tput setaf 4
+                    printf "%s" "${_owner}"
+                    tput sgr0 
+                elif
+                    test "${_first_char}" = "N"
+                then
+                    _name="${_value}"
+
+                    printf "/"
+
+                    if
+                        test -d "${GITM_DIR_REPOSITORIES}/${_owner}/${_name}"
+                    then
+                        tput setaf 2
+                    else
+                        tput setaf 5
+                    fi
+
+                    printf "%s " "${_name}"
+
+                    tput sgr0
+                elif
+                    test "${_first_char}" = "V"
+                then
+                    _visibility="${_value}"
+
+                    if
+                        test "${_visibility}" = "private"
+                    then
+                        tput setaf 1
+                    else
+                        tput setaf 3
+                    fi
+
+                    tput dim
+                    printf "[%s]\n" "${_visibility}"
+                    tput sgr0
+                elif
+                    test "${_first_char}" = "D"
+                then
+                    tput dim
+                    printf "%s" "- DESCRIPTION: "
+                    tput sgr0
+
+                    printf "%s\n" "${_value}"
+                elif
+                    test "${_first_char}" = "U"
+                then
+                    tput dim
+
+                    _dir="${GITM_DIR_REPOSITORIES}/${_owner}/${_name}"
+
+                    printf "%s\n" \
+                        "- REMOTE: <${_value}>" \
+                        "- LOCAL: $(test -d "${_dir}" && printf "%s" "${_dir}" || printf "%s" "null")"
+                    
+                    tput sgr0
+                fi
+            done
+    )"
+
+    # If the page is empty, break since we have reached the end of the list of repositories.
+    if
+        test -z "${_page_content}"
+    then
+        break
+    fi
+
+    # Increment the page number.
+    _page_no=`expr ${_page_no} + 1`
+
+    # printf "%s" "${_page_content}" \
+    # | sed -n \
+    #     "
+    #         /^[^-]/
+    #         {
+
+    #         }
+    #     "
+
+    # Print a page of repositories.
+    printf "%s" "${_page_content}"
+done

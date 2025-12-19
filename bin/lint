@@ -1,45 +1,178 @@
 #!/bin/sh
 #
 # NAME
-#     lint
+#     lint - shellcheck wrapper, wip: general linter unification wrapper with intelligent language recognition
 #
 # DESCRIPTION
 #
 # AUTHOR
 #     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
 
-_main()
-{
-    # Print help and exit if a help flag was supplied.
-    test -n "${_script_args}" &&
-        printf -- "${_script_args}" |
-        sed -n "/^--help$/q ; /^-h$/q ; q5" &&
-        cat "${_script_path}/${_script_name}" |
-        sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }" &&
-        exit
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd -- "$(_dirname -- "${0}")" ; pwd)"
+
+# Print help and exit if a help flag was supplied.
+if
+    test "${#}" -gt 0 \
+    && test -n "$(printf "%s\n" "${@}" | sed -n "/^--help$/pq; /^-h$/pq")"
+then
+    sed -n \
+        "
+            3,/^$/
+            {
+                s/^# //g
+                s/^#//g
+                p
+            }
+        " \
+        "${_script_path}/${_script_name}"
+
+    exit
+fi
+
+# TODO: Potential target languages: .cjs, .mjs, .jsx, .c, .cpp, .md, .elisp/.lisp, rust.
+if
+    printf "%s\n" "${@}" | sed -n "/^posix$/q; q5"
+then
+    shift
+
+    # how can I input multiple files and/or _directories to sed and find lines that match `/^.*print .*--.*$/`, and output them in this format:
+
+    # ```
+    # Some message here
+
+    # In "${_relative_path_file}" line "${_line_number}":
+    # "${_line_contents}"
+    # ```
+
+    # for \
+    #     _file in "$@"
+    # do
+    #     while
+    #         IFS= read -r line
+    #     do
+    #         _line_number=$(printf '%s\n' "$line" | cut -d: -f1)
+    #         _line_contents=$(printf '%s\n' "$line" | cut -d: -f2-)
+    #         _relative_path_file="$_file"
+
+    #         printf '\nIn "%s" line "%s":\n"%s"\n' \
+    #             "$_relative_path_file" "$_line_number" "$_line_contents"
+    #     done \
+    #     < "$(sed -n '/^.*print .*--.*$/=' "$_file")"
+    # done
+
+    tput setaf 4
+    printf "%s" "\`shellcheck -x\` output:"
+    tput sgr0
+    printf "\n\n"
 
     if
-    printf -- "${_script_args}" |
-        sed -n "/^posix$/q ; q5"
+        ! shellcheck -x --shell=sh "${@}"
     then
-        shift
-        shellcheck -x --shell=sh --exclude=SC2059,SC1090 ${@}
-
+        _exit_code="$?"
+        tput setaf 1
+        printf "%s\n" "Error: \`shellcheck -x\` exited with exit code \`${_exit_code}\`." 1>&2
+        tput sgr0
+        printf "\n\n"
     fi
-}
+
+    tput setaf 4
+    printf "%s" "\`checkbashisms -x\` output:"
+    tput sgr0
+    printf "\n\n"
+
+    if
+        ! checkbashisms -x "${@}"
+    then
+        _exit_code="$?"
+        tput setaf 1
+        printf "%s\n" "Error: \`checkbashisms -x\` exited with exit code \`${_exit_code}\`." 1>&2
+        tput sgr0
+    fi
+elif
+    printf "%s\n" "${@}" | sed -n "/^bash$/q; q5"
+then
+    shift
+
+    shellcheck -x --shell "${@}"
+fi
+
+# "eslint": "eslint ./",
+# "stylelint": "stylelint ./src/**/*.scss"
+# "eslint": "eslint -c path/to/your/.eslintrc ./",
+
+# java -jar "${HOME}/bin/vnu.d/vnu.jar" --also-check-css ./*.css ./*.html
 
 # set -e
 # _script_name="$(basename -- "${0}")" # TODO: `basename` appears to not be workign as expected, does removing `--` help?
-# _script_path="$(dirname -- "${0}")" # TODO: Potentially same problem as above.
+# _script_path="$(_dirname -- "${0}")" # TODO: Potentially same problem as above.
 # _script_path="$(cd "${_script_path}" ; pwd)"
 # _script_args="$(printf -- "%s\n" "${@}")"
-# mkdir -- "${_script_path}/${_script_name}-logs"
+# mk_dir -- "${_script_path}/${_script_name}-logs"
 # _main "${@}" | tee --append -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S).log"
 
-set -e
-_script_name="$(basename -- "${0}")"
-_script_path="$(dirname -- "${0}")"
-_script_path="$(cd "${_script_path}" ; pwd)"
-_script_args="$(printf -- "%s\n" "${@}")"
-mkdir -p -- "${_script_path}/${_script_name}-logs"
-_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+# # Define _linters for each _file type
+# _linters="
+# js:eslint
+# jsx:eslint
+# css:stylelint
+# scss:stylelint
+# "
+
+# # Function to lint a _file
+# _lint_file() {
+#     _file=$1
+#     _extension=$(basename "${_file}" | sed 's/.*\.//')
+#     _linter=$(printf "%s\n" "${_linters}" | grep "^${_extension}:" | cut -d: -f2)
+
+#     if
+#         test -n "${_linter}"
+#     then
+#         ${_linter} "${_file}"
+#     else
+#         printf "No _linter defined for .%s files.\n" "${_extension}"
+#     fi
+# }
+
+# # Function to lint a _directory
+# _lint_directory()
+# {
+#     _dir=$1
+
+#     for \
+#         _item in "${_dir}"/*
+#     do
+#         if
+#             test -d "${_item}"
+#         then
+#             _lint_directory "${_item}"
+#         elif
+#             test -f "${_item}"
+#         then
+#             _lint_file "${_item}"
+#         fi
+#     done
+# }
+
+# # Main script
+# if
+#     test "${#}" -eq 0
+# then
+#     _lint_directory .
+# else
+#     for arg do
+#         if
+#             test -d "${arg}"
+#         then
+#             _lint_directory "${arg}"
+#         elif
+#             test -f "${arg}"
+#         then
+#             _lint_file "${arg}"
+#         else
+#             printf "%s is not a valid _file or _directory.\n" "${arg}"
+#         fi
+#     done
+# fi

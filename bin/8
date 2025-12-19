@@ -1,0 +1,220 @@
+#!/bin/sh
+#
+# NAME
+#     invokation-name - description
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX-compliant shell.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+#
+# NOTES
+#     Main Repository: <>
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+
+# # Main functionality
+# find /dev -type b 2>/dev/null | sort | while IFS= read -r device; do
+#     case "$device" in
+#         /dev/sd[a-z][0-9]* | /dev/hd[a-z][0-9]* | /dev/nvme[0-9]n[0-9]p[0-9]*)
+#             # Skip if mounted
+#             if ! mount | grep -q "^$device "; then
+#                 # Get filesystem info
+#                 fstype=$(file -Ls "$device" 2>/dev/null | cut -d' ' -f2) || fstype="unknown"
+                
+#                 # Get size info
+#                 if blocks=$(stat -f %b "$device" 2>/dev/null) && \
+#                    block_size=$(stat -f %S "$device" 2>/dev/null); then
+#                     size_mb=$((blocks * block_size / 1024 / 1024))
+#                     printf '%s:\n  Type: %s\n  Size: %dMB\n\n' \
+#                         "$device" "$fstype" "$size_mb"
+#                 fi
+#             fi
+#             ;;
+#     esac
+# done
+
+
+
+
+
+
+
+# _disk_get_mounted_points()
+# {
+#     _dgmp_disk_number="${1}"
+    
+#     find "/mnt" -maxdepth 2 -type d -wholename "/mnt/wsl/PHYSICALDRIVE${_dgmp_disk_number}p*"
+# }
+
+# _disk_check_mount_status()
+# {
+#     _dcms_disk_number="${1}"
+#     _dcms_mounts="$(_disk_get_mounted_points "${_dcms_disk_number}")"
+    
+#     if
+#         test -n "${_dcms_mounts}"
+#     then
+#         printf "%s\n" "${_dcms_mounts}" \
+#         | while \
+#             IFS="" read -r _dcms_mount_point
+#         do
+#             if
+#                 test -e "${_dcms_mount_point}"
+#             then
+#                 return 0
+#             fi
+#         done
+#     fi
+    
+#     return 1
+# }
+
+# _disk_unmount_points() 
+# {
+#     _dup_disk_number="${1}"
+
+#     _dup_mounts="$(_disk_get_mounted_points "${_dup_disk_number}")"
+    
+#     if
+#         test -n "${_dup_mounts}"
+#     then
+#         printf "%s\n" "Unmounting points:"
+        
+#         printf "%s\n" "${_dup_mounts}" \
+#         | while \
+#             IFS="" read -r _dup_mount_point
+#         do
+#             if
+#                 test -n "${_dup_mount_point}"
+#             then
+#                 printf "%s\n" "${_indent}- ${_dup_mount_point}"
+                
+#                 umount "${_dup_mount_point}" || return 1
+                
+#                 sleep 1
+#             fi
+#         done
+#     fi
+# }
+
+# _disk_manage()
+# {
+#     if
+#         test $# -ne 1
+#     then
+#         printf "%s\n" \
+#             "Error: Disk number required" \
+#             "Usage: _disk_manage DISK_NUMBER"
+#         return 1
+#     fi
+
+#     _dm_disk_number="${1}"
+
+#     # Check if disk has mounted points
+#     if
+#         _disk_check_mount_status "${_dm_disk_number}"
+#     then
+#         printf "%s\n" "Found mounted points:"
+#         _disk_get_mounted_points "${_dm_disk_number}" | sed "s/^/${_indent}- /"
+
+#         printf "\nAttempting to unmount...\n"
+#         if
+#             _disk_unmount_points "${_dm_disk_number}"
+#         then
+#             printf "%s\n" "Successfully unmounted all points"
+#             return 0
+#         else
+#             printf "%s\n" "Failed to unmount all points"
+#             return 1
+#         fi
+#     else
+#         printf "%s\n" "No mounted points found for disk ${_dm_disk_number}"
+#         return 0
+#     fi
+# }
+
+# _disk_manage "$1"
+
+
+
+To ensure a drive is safe to mount under WSL, you need to:
+
+Identify the drive and its partitions.
+Safely unmount any mounted partitions in Windows.
+Set the drive offline in Windows to prevent conflicts.
+Here's how you can accomplish this using PowerShell commands within a POSIX sh script in WSL:
+
+bash
+Copy code
+#!/bin/sh
+
+# Replace <DiskNumber> with your actual disk number
+diskNumber=<DiskNumber>
+
+# Run PowerShell commands from WSL to unmount partitions and set the disk offline
+powershell.exe -NoProfile -Command "
+  \$diskNumber = $diskNumber;
+  
+  # Dismount all volumes on the disk
+  Get-Partition -DiskNumber \$diskNumber | Get-Volume | ForEach-Object {
+    if (\$_.DriveLetter) {
+      Dismount-Volume -DriveLetter \$_.DriveLetter -Force
+    }
+  }
+  
+  # Set the disk offline
+  Set-Disk -Number \$diskNumber -IsOffline \$true
+"
+Explanation of the PowerShell Commands:
+
+Dismount Volumes on the Disk:
+
+powershell
+Copy code
+Get-Partition -DiskNumber $diskNumber | Get-Volume | ForEach-Object {
+  if ($_.DriveLetter) {
+    Dismount-Volume -DriveLetter $_.DriveLetter -Force
+  }
+}
+Get-Partition -DiskNumber $diskNumber: Retrieves all partitions on the specified disk.
+Get-Volume: Gets the volume associated with each partition.
+ForEach-Object: Iterates over each volume.
+Dismount-Volume -DriveLetter $_.DriveLetter -Force: Safely unmounts the volume.
+Set the Disk Offline:
+
+powershell
+Copy code
+Set-Disk -Number $diskNumber -IsOffline $true
+Set-Disk: Modifies the disk properties.
+-IsOffline $true: Sets the disk to offline, making it safe for WSL to use.
+Notes:
+
+Administrative Privileges: Setting a disk offline requires administrative rights. Ensure that your PowerShell session has the necessary permissions. You might need to run your WSL terminal or script as an administrator.
+Error Handling: You can add error handling in your script to manage exceptions or if the disk is already offline.
+Disk Number: Replace <DiskNumber> with the actual disk number you wish to work with. You can find disk numbers using Get-Disk in PowerShell.
+Example of Finding Disk Number:
+
+Before running the script, you might want to identify the disk number:
+
+powershell
+Copy code
+Get-Disk | Select-Object Number, FriendlyName, OperationalStatus
+Final Remarks:
+
+By incorporating these commands into your sh script, you ensure that any mounted partitions are safely unmounted and that the drive is set offline in Windows, making it safe to mount under WSL.
+
+Please ensure you understand each command and its implications before running them, especially when modifying disk states, to prevent data loss.
+
+
+
+
+
+

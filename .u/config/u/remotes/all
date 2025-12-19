@@ -1,0 +1,2 @@
+# WARNING: Writing to this file will override the default functionality of the `all` pseudo-group: process all remotes.
+# NOTE: This may be desirable if you wish to alter the order in which remotes are processed.

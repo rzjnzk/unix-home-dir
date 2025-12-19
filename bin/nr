@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# NAME
+#     nr - alias for `npm run "${@}"`
+
+set -e
+
+npm run "${@}"

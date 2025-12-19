@@ -1,0 +1,5 @@
+#!/bin/sh
+
+printf ">\n"
+set | sed -n "s/^_var_\([^=]*\)=\(.*\)/\2/p"
+printf "<\n"

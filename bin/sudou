@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# NAME
+#     sudou - execute a file in `${HOME}/bin` with sudo
+
+set -e
+
+# shellcheck disable=SC2145
+sudo "${HOME}/bin/""${@}"

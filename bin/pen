@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# NAME
+#     ipinfo - get ip address information from `https://ipinfo.io`
+
+# TODO: Resource: https://www.youtube.com/watch?v=oWRI6xKEZMk.
+
+set -e
+
+# _script_name="$(basename -- "${0}")"
+# _script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+if
+    command -v curl > /dev/null 2>&1
+then
+    _fetch()
+    {
+        curl -sS "${@}"
+    }
+elif
+    command -v wget > /dev/null 2>&1
+then
+    _fetch()
+    {
+        wget -qO- "${@}"
+    }
+else
+    printf "%s\n" "Error: This script requires \`curl\` or \`wget\`." 1>&2
+
+    exit 1
+fi
+
+if
+    test -z "${1}"
+then
+    set -- ""
+fi
+
+for \
+    _arg in "${@}"
+do
+    _fetch "https://ipinfo.io/${_arg}"
+
+    printf "\n"
+
+    nmap -sV "${_arg}"
+
+    printf "\n"
+
+    # TODO: Print wordlists and facilitate selection, as well as custom path selections.
+
+    gobuster dir -u "${_arg}" -w /usr/share/wordlists/dirb/common.txt
+done

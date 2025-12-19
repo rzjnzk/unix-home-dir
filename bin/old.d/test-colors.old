@@ -1,0 +1,120 @@
+#!/bin/sh
+#
+# NAME
+#     test-colors - test terminal colors and display their ANSI and tput codes
+
+# TODO: Find out the difference between and differentiate `printf e[38m` and `printf e[39m` as well as `printf e[48m` and `printf e[49m`.
+# TODO: Remove colors from the loops and label them with their respective color names to allow checking if the terminal follows the color conventions.
+# TODO: Add other formatting tests like bold, underline, etc. However, perhapse these should be added to a different script.
+# TODO: Display each printed section in colomns, where each row is a specific color
+
+# GitHub Copilot: `tput` can control the cursor position and visibility, but it cannot directly control the cursor shape or color. Here's how you can use `tput` for cursor control:
+
+# - **Cursor position**: `tput cup Y X` moves the cursor to position (Y, X), where Y is the row number and X is the column number.
+# - **Cursor visibility**: `tput civis` hides the cursor, and `tput cnorm` shows the cursor.
+
+# As for the cursor shape and color, these are typically controlled by the terminal emulator or the operating system's settings, and are not something that can be changed from within a shell script. The exact steps to change these settings would depend on which terminal emulator and operating system you are using.
+
+# GitHub Copilot: No, `tput` cannot directly set the terminal title or the icon. 
+
+# However, you can use escape sequences to set the terminal title in most terminal emulators. Here's an example:
+
+# ```bash
+# echo -ne "\033]0;YOUR TITLE HERE\007"
+# ```
+
+# GitHub Copilot: You can use the `tput` command to get the terminal size. The `cols` sub-command gives the width of the terminal in characters, and the `lines` sub-command gives the height of the terminal in lines.
+
+# Here's how you can use these commands:
+
+# ```bash
+# # Get the width of the terminal
+# width=$(tput cols)
+
+# # Get the height of the terminal
+# height=$(tput lines)
+
+# # Print the size
+# echo "Width: $width"
+# echo "Height: $height"
+# ```
+
+# Unfortunately, `tput` cannot be used to set the terminal size. The size of the terminal is controlled by the terminal emulator or the operating system, and cannot be changed from within a shell script.
+
+# GitHub Copilot: `tput` is a command that can interact with the terminfo database to control terminal capabilities. Besides setting colors, `tput` can do a variety of things, including:
+
+# - Move the cursor: `tput cup Y X` moves the cursor to position (Y, X), where Y is the row number and X is the column number.
+# - Clear the screen: `tput clear` clears the screen and moves the cursor to the top-left corner.
+# - Get terminal size: `tput cols` and `tput lines` return the width and height of the terminal, respectively.
+# - Hide or show the cursor: `tput civis` hides the cursor, and `tput cnorm` shows the cursor.
+# - Enable or disable standout mode: `tput smso` enables standout mode, and `tput rmso` disables standout mode. Standout mode is used to make some text stand out, usually by reversing the foreground and background colors.
+# - Enable or disable underlining: `tput smul` enables underlining, and `tput rmul` disables underlining.
+# - Enable or disable bold mode: `tput bold` enables bold mode.
+# - Scroll the window: `tput ind` scrolls the window up one line, and `tput ri` scrolls the window down one line.
+# - Play a bell sound: `tput bel` plays a bell sound.
+
+# Remember that not all of these capabilities are supported by all terminals. The actual effect of these commands can vary depending on the terminal emulator you are using.
+
+
+tput sgr0
+printf "\`tput sgr0\` (default foreground and background)\n\n\n"
+
+# `tput` commands for foreground.
+
+printf "\`tput\` commands for foreground colors:\n\n"
+
+_lib_terminal_text_attributes__colors="$(tput colors 2> /dev/null)"
+
+_number=0
+
+while
+    test "${_number}" -le 9
+do
+    tput setaf "${_number}"
+    printf "\`tput setaf "${_number}"\`$(tput sgr0)\n"
+    _number="$(expr "${_number}" + 1)"
+done
+
+tput sgr0
+
+# `tput` commands for background.
+
+printf "\n\n\`tput\` commands for background colors:\n\n"
+
+_number=0
+
+while
+    test "${_number}" -le 9
+do
+    tput setab "${_number}"
+    printf "\`tput setab "${_number}"\`$(tput sgr0)\n"
+    _number="$(expr "${_number}" + 1)"
+done
+
+# ANSI escape codes for foreground.
+
+printf "\n\nANSI escape characters for foreground colors:\n\n"
+
+_number=30
+
+while
+    test "${_number}" -le 39
+do
+    printf "\e[${_number}m\`printf "\e[${_number}m"\`\e[0m\n"
+    _number="$(expr "${_number}" + 1)"
+done
+
+# ANSI escape codes for background.
+
+printf "\n\nANSI escape characters for background colors:\n\n"
+
+_number=40
+
+while
+    test "${_number}" -le 49
+do
+    printf "\e[${_number}m\`printf "\e[${_number}m"\`\e[0m\n"
+    _number="$(expr "${_number}" + 1)"
+done
+
+tput sgr0

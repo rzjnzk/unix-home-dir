@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# NAME
+#     touche - alias for `touch <RELATIVE_PATH> && ${EDITOR} <RELATIVE_PATH>`
+
+set -e
+
+touch "${1}"
+
+${EDITOR} "${1}"

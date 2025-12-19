@@ -1,0 +1,115 @@
+#!/bin/sh
+
+set -e
+
+_arg_name="some-flag"
+
+printf "%s\n" "--some-flag=\"hello, \\\" world\",test,'foo, bar',\"larry \\\"a\\\" man\",test, \"wing wong\",la,'min'"
+
+printf "%s\n" "--some-flag=\"hello, \\\" world\",test,'foo, bar',\"larry \\\"a\\\" man\",test,\"wing \\\" \\\" \\\" wong\",la,'min',\"very \\\"nested \\\\\"content\\\\\" \\\"\"" | sed -n \
+"
+    /^--${_arg_name}=/ \
+    {
+        s/^--${_arg_name}=//;
+        s/\(^\|,\)\([^,\"]*\"[^\"]*\"[^,]*\|[^,]*'[^']*'[^,]*\|[^,\"]*\)/\2 /g;
+        p;
+    }
+"
+
+exit 2
+
+# printf "%s\n" "--some-flag=\"hello, world\",test,'foo, bar',\"test ing\"" \
+# | while \
+#     IFS="," read -r _arg_value 
+# do
+#     printf "%sasd\n" "${_arg_value}"
+# done
+
+# Option 1 - Move IFS inside loop
+printf "%s\n" "--some-flag=\"hello, \\\" world\",test,'foo, bar',\"larry \\\"a\\\" man\",test, \"wing wong\",la,'min'" \
+| while \
+    read -r _line
+do
+    
+    _ifs_old="${IFS}"
+    IFS=","
+
+    _line="$(printf "%s" "${_line}" | sed -n "s/^--${_arg_name}=//p")"
+    
+    for \
+        _arg in ${_line}
+    do
+        if
+            test -n \
+                "$(
+                    printf "%s\n" "${_arg}" | sed -n \
+                    "
+                        s/\\\\\"//g;
+                        s/[^\"]//g;
+                        s/\"\"//g;
+                    "
+                )"
+        then
+            if
+                test "${_is_quote_open}" = "true"
+        if
+            test -n \
+                "$(
+                    printf "%s\n" "${_arg}" | sed -n \
+                    "
+                        s/\\\'//g;
+                        s/[^\']//g;
+                        s/\'\'//g;
+                    "
+                )"
+        then
+        fi
+    done
+
+    IFS="${_ifs_old}"
+done
+printf ">%s<\n" "$(printf "%s\n" "--some-flag=\"hello, \\\" world\",test,'foo, bar',\"larry \\\"a\\\" man\",test, \"wing wong\",la,'min'" \
+| sed \
+"
+    s/\\\\\"//g;
+    s/[^\"]//g;
+    s/\"\"//g;
+")"
+
+
+exit 2
+
+_arg_name="some-flag"
+
+printf "%s\n" "--some-flag=\"hello, world\",test,'foo, bar'" | sed -n \
+"
+    /^--${_arg_name}=/ \
+    {
+        s/^--${_arg_name}=//
+
+        s/\(^\|,\)\([^,]*\".*\"[^,]*\|[^,]*'.*'[^,]*\|[^,]*\)/\2 \\n/g;
+        p
+
+        # :loop
+
+
+
+        # t loop
+        # p
+
+        #         s/^\([\"']{0,1}.*[\"']{0,1}\),.*$/\\1 /p
+        # p
+        #         :loop
+        #             # s/^.*\([^,]*[^\\]*[\"'].*[^\\]*[\"'][^,]*\),.*$/\\1 /p
+        #             # \{0,1\}
+        
+        #             # s/^\\([^\\,]*[\"']{0,1}.*[^\\]{0,1}[\"']{0,1}\\),.*$/\\1 /gp
+        #             # s/h\|o/-/gp
+        
+        #             s/^.* \(\\'.*\\'\),.*$/\\1 /gp
+                    
+        #         t loop
+
+    }
+"
+    

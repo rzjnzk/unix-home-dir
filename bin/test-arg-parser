@@ -1,0 +1,61 @@
+#!/bin/sh
+
+_script_name="$(basename -- "${0}")"
+_SCRIPT_PATH="$(dirname -- "${0}")"
+
+# Option 1.
+
+_lib__arg_parser__flag__is_verbose="-v --verb --verbose"
+_lib__arg_parser__flag_vals__packages="n -p --packages"
+_lib__arg_parser__flag_vals__packages="2 -p --packages"
+_lib__arg_parser__before_flags="NULL"
+_lib__arg_parser__after_flags="NULL"
+
+. "${_SCRIPT_PATH}/lib.d/libs"
+
+# Option 2a.
+
+_IMPORTS="
+    arg-parser
+        _is_verbose bool -v --verb --verbose
+        _packages n -p --packages
+" \
+. "${_SCRIPT_PATH}/lib.d/libs"
+
+# Option 2b.
+
+_IMPORTS="
+    import arg-parser
+        var _is_verbose bool -v --verb --verbose
+        var _packages n -p --packages
+" \
+. "${_SCRIPT_PATH}/lib.d/libs"
+
+# Option 2c.
+
+_IMPORTS="
+    import arg-parser
+        bool-flag _is_verbose -v --verb --verbose
+        list-flag _packages n -p --packages
+        after-flags _after_flags
+        before-flags _before_flags
+" \
+. "${_SCRIPT_PATH}/lib.sh"
+
+# Option 3a.
+
+_ARGS="
+    _is_verbose bool -v --verb --verbose
+    _packages n -p --packages
+" \
+. "${_SCRIPT_PATH}/lib.d/arg-parser.sh"
+
+# Option 3b.
+
+_ARGS="
+    bool-flag _arg_parser__is_verbose -v --verb --verbose;
+    list-flag _arg_parser__packages n -p --packages;
+    after-flags _arg_parser__after_flags;
+    before-flags _arg_parser__before_flags;
+" \
+. "${_SCRIPT_PATH}/lib.d/arg-parser.sh"

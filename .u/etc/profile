@@ -1,0 +1,91 @@
+# shellcheck disable=SC2148,SC1090,SC1091
+
+
+# TODO: Redirect all stdout but not stderr to a file that is printed via a command or function defined in `.profile`. This way the output can be view only when useful, and at any time. The file should be overwritten on each invocation of `.profile`.
+
+# TODO: Consider wrapping parts of this script in an if statement that checks if the terminal is interactive to prevent undesired behavior for certain instances of logins shells. For example, setting the path variable.
+
+tput init 2> /dev/null
+
+# BEGIN Read config values from `.conf` file into variables.
+
+_file_name_prompt=""
+_file_name_welcome_message=""
+
+while
+    IFS="" read -r _line
+do
+    if
+        test -z "${_file_name_prompt}"
+    then
+        _file_name_prompt="$(printf "%s\n" "${_line}" | sed -n "s/^ *prompt *= *\(.*\) *$/\1/p")"
+    fi
+
+    if
+        test -z "${_file_name_welcome_message}"
+    then
+        _file_name_welcome_message="$(printf "%s" "${_line}" | sed -n "s/^ *welcome_message *= *\(.*\) *$/\1/p")"
+    fi
+done \
+< "${U_DIR}/config/profile/.conf"
+
+# END Read config values from `.conf` file into variables.
+
+# BEGIN Sourcing.
+
+\. "${U_DIR}/config/profile/prompts/${_file_name_prompt}" 2> /dev/null
+
+\. "${U_DIR}/config/profile/profile" 2> /dev/null
+
+\. "${U_DIR}/config/profile/welcome-messages/${_file_name_welcome_message}" 2> /dev/null
+
+# END Sourcing.
+
+# BEGIN Define profile-related functions.
+
+profile()
+{
+    if
+        test -n "${1}"
+    then
+        printf "%s\n" "+ time \\. \"${HOME}/.profile\""
+
+        time \. "${HOME}/.profile"
+    fi
+}
+
+ps1()
+{
+    _path_prompts="${U_DIR}/config/profile/prompts"
+
+    if
+        test -z "${1}"
+    then
+        ls -1 "${_path_prompts}"
+    elif
+        test -f "${_path_prompts}/${1}"
+    then
+        # printf "%s\n" "${1}" > "${U_DIR}/state/profile.d/selected-prompt"
+        if
+            test -n "$(printf "%s" "${1}" | sed "s/[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-]//g")"
+        then
+            printf "%s\n" "Error: Prompt-file name contains atypical file name characters." 1>&2
+
+            return 1
+        fi
+
+        _file_name_conf="${U_DIR}/config/profile.d/.conf"
+
+        if
+            ! printf "%s" "$(cat "${_file_name_conf}")" | sed "s/^ *prompt *=.*$/prompt = ${1}/" > "${_file_name_conf}"
+        then
+            printf "%s\n" "Error: Failed to set prompt in configuration file." 1>&2
+
+            return 1
+        fi
+
+        \. "${_path_prompts}/${1}"
+    fi
+
+    # TODO: Add an else clause to the above conditional, ask if the user wants to create a new prompt script, if yes, copy a template file into the correct dir, and begin editing it.
+}

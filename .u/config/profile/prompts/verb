@@ -1,0 +1,160 @@
+# If assumed running under Windows Subsystem for Linux, aka `WSL`.
+if
+    test -n "$(sed -n "/microsoft/p" "/proc/version" 2> /dev/null)"
+    # test -f /mnt/c/Windows/System32/cmd.exe || command -v cmd.exe > /dev/null
+then
+    # tput setaf 4
+    # printf "%s\n" "\`${SHELL}\` appears to be running under Windows Subsystem for Linux (WSL)."
+    # printf "%s\n\n" "Importing Windows environment variables with the prefix \`WSL_\`."
+    # tput sgr0
+
+    # # Redirected error:
+    # #     '\\wsl.localhost\Ubuntu\home\user'
+    # #     CMD.EXE was started with the above path as the current directory.
+    # #     UNC paths are not supported.  Defaulting to Windows directory.
+    # cmd.exe /C "echo WSL Installed Distros: & echo & wsl -l -v" 2> /dev/null \
+    # || /mnt/c/Windows/System32/cmd.exe /C "echo WSL Installed Distros: & wsl -l -v" 2> /dev/null
+
+    # if
+    #     cmd.exe /C "wsl -l -v" > /dev/null 2>&1 \
+    #     || /mnt/c/Windows/System32/cmd.exe /C "wsl -l -v" > /dev/null 2>&1
+    # then
+    #     _wsl_ver="[WSL2] "
+    # elif
+    #     cmd.exe /C "wsl --list" | sed "/Windows Subsystem for Linux Distributions:/d" > /dev/null 2>&1 \
+    #     || /mnt/c/Windows/System32/cmd.exe /C "wsl --list" | sed "/Windows Subsystem for Linux Distributions:/d" > /dev/null 2>&1
+    # then
+    #     _wsl_ver="[WSL1] "
+    # fi
+
+    # Determine if running under `WSL1` or `WSL2` for use in the prompt.
+    if
+        test -n "$(sed -n "/WSL2/p" "/proc/version" 2> /dev/null)"
+    then
+        _prompt_wsl_ver=" WSL2 >"
+    else
+        _prompt_wsl_ver=" WSL1 >"
+    fi
+
+    # # TODO: Substitiute `C:\` as `/mnt/c`. Where `C` is any english alphabet letter.
+    # # TODO: Might conflict with automatically set `WSL_` prefixed variables.
+    # # TODO: Might already be handled by `WSL2`.
+    # {
+    #     eval \
+    #     "$(
+    #         /mnt/c/Windows/System32/cmd.exe /c SET |
+    #             sed -n \
+    #                 "
+    #                     # Remove carriage return.
+    #                     s/\r//g;
+
+    #                     # Remove illegal POSIX-compliant variable name chars.
+    #                     s/^.*[()].*=.*$//g;
+
+    #                     # # Convert windows path prefixes to WSL format.
+    #                     # s/\(^..*=.*\)[A-Z]:\\\\/\1\//g;
+
+    #                     # Assume backslashes are path dividers and substitute POSIX forward slashes.
+    #                     s/\\\\/\//g;
+
+    #                     # Prepare for export execution.
+    #                     s/\(^..*=\)\(.*$\)/export WSL_\1\"\2\"/g;
+
+    #                     p
+    #                 "
+    #     )"
+    # } \
+    #     >/dev/null 2>&1
+fi
+
+# TODO: Check this logic.
+test "${debian_chroot:-}" \
+|| test -r /etc/debian_chroot \
+&& debian_chroot="$(cat /etc/debian_chroot)"
+
+# shellcheck disable=SC2148
+PS1_PROMPT_FUNCTION()
+{
+    _exit_code_pre_prompt="$?"
+
+    tput sgr0
+
+    # printf -- "%$(($(tput cols)-1))s\r\n"
+    # shellcheck disable=SC2183
+    # printf "%*s\r\n" "$(($(tput cols)-1))"
+    # Add newlines incase the previous output did not.
+    printf "\r\n\r\n"
+
+    tput rev
+
+    # printf "%s" \
+    #     " ${debian_chroot:+($debian_chroot)}" \
+    #     "$(whoami)@$(hostname) ${_wsl_ver}$(tput sgr0) " \
+    #     "$(tput rev) $(date "+%Y/%m/%d") $(tput sgr0) " \
+    #     "$(tput rev) $(date "+%H:%M:%S") $(tput sgr0) "
+
+    # tput setaf 4
+
+    printf "%s" \
+        "${_prompt_wsl_ver} " \
+        "$(test -n "${SSH_CLIENT}" && printf "%s" "${SSH_CLIENT} > ")" \
+        "$(test -n "${debian_chroot}" && printf "%s" "(${debian_chroot}) > ")" \
+        "$(whoami)@$(hostname) "
+
+    tput setaf 8
+    printf "%s" " $(date "+%Y/%m/%d %H:%M:%S") "
+
+    if
+        test "${_exit_code_pre_prompt}" = 0
+    then
+        tput setaf 2
+    else
+        tput setaf 1
+    fi
+
+    # NOTE: Placing the `tput sgr0` execution after `printf` will cause incorrect highlighting in some terminal emulators.
+    printf "%s\n" " Exit: ${_exit_code_pre_prompt} $(tput sgr0)"
+
+    tput setaf 4
+
+    _git_repo_remote="$(git config --get remote.origin.url 2> /dev/null)"
+
+    if
+        test -n "${_git_repo_remote}"
+    then
+        # If the current working directory is the root or child of a `git` version controlled directory, print the remote.
+        # TODO: Print information on changes since last commit.
+        # _git_log_data="$(git log -1 --format="" --summary)"
+        printf "\xe2\x94\x9c\xe2\x94\x80 %s\n" "${_git_repo_remote} ($(git rev-parse --abbrev-ref HEAD 2> /dev/null))"
+
+        # git log -1 --oneline --decorate=full --color=always | sed "s/).*$/)/g"
+    fi
+
+    printf "\xe2\x94\x94\xe2\x94\x80 "
+    tput setaf 5
+    printf "%s" "$(pwd) "
+    tput setaf 4
+
+
+    # NOTE: `check-ignore` was introduced in Git version 1.8.2, which was released in March 2013 [fact check this].
+    # NOTE: An exit code of 0 means working dir is a `git` version controlled directory that is ignored.
+    # NOTE: An exit code of 1 means working dir is a `git` version controlled directory that is not ignored.
+    # NOTE: An exit code of 128 means working dir is not a `git` version controlled directory.
+    # NOTE: An exit code of 127 means `git` is not installed or the installed version of `git` does not support `check-ignore`.
+    git check-ignore -q . > /dev/null 2>&1
+
+    # If working dir is an ignored `git` version controlled directory.
+    if
+        test "$?" = 0
+    then
+        printf "%s\n" "(ignored)"
+    else
+        printf "\n"
+    fi
+
+    tput sgr0
+    printf "\n%s" "${SHELL} "
+    printf "\$ "
+}
+
+PS1="\$(PS1_PROMPT_FUNCTION)"

@@ -1,0 +1,27 @@
+PS1_PROMPT_FUNCTION()
+{
+    _exit_code_pre_prompt="$?"
+
+    tput sgr0
+
+    printf "\r\n\r\n"
+
+    if
+        test "${_exit_code_pre_prompt}" != 0
+    then
+        tput setaf 1
+        printf "%s\n\n" "Exit: ${_exit_code_pre_prompt}"
+    fi
+
+    tput setaf 5
+
+    printf "$(pwd)"
+
+    tput setaf 4
+
+    printf " \$ "
+
+    tput sgr0
+}
+
+PS1="\$(PS1_PROMPT_FUNCTION)"

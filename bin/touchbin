@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# NAME
+#     touche - create a new sh script in the users bin directory with `u+rwx` permissions from a template and open it in the `${EDITOR}`
+
+for \
+    _file_name in "${@}"
+do
+    touch "${HOME}/bin/${_file_name}"
+    chmod u+rwx "${HOME}/bin/${_file_name}"
+
+    printf "%s\n" \
+        "#!/bin/sh" \
+        "#" \
+        "# NAME" \
+        "#     ${_file_name} - " \
+        "" \
+        "set -e" \
+        "" \
+        > "${HOME}/bin/${_file_name}"
+
+    ${EDITOR} "${HOME}/bin/${_file_name}"
+done

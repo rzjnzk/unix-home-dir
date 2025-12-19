@@ -1,0 +1,5 @@
+# NOTE: Remote configs specified in this file will be processed if no group is specified or if the group `default` is specified.
+
+aliases
+home
+encrypted

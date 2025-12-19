@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# NAME
+#     flushemacs - 
+
+set -e
+
+printf "%s\n" "+ rm -r \"${HOME}/.emacs.d/elpa/\""
+
+rm -r "${HOME}/.emacs.d/elpa/"
+
+printf "%s\n" "+ rm -r \"${HOME}/.emacs.d/eln-cache/\""
+
+rm -r "${HOME}/.emacs.d/eln-cache/"
+
+printf "%s\n" "+ rm \"${HOME}/.emacs.d/custom.el\""
+
+rm "${HOME}/.emacs.d/custom.el"

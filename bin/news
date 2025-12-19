@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# NAME
+#     news - print tech news article titles and links from `lobste.rs`
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+set -e
+
+curl -sS https://lobste.rs/rss \
+| sed -n \
+    "
+        1,5 d;
+        s/^.*<title>\(.*\)<\/title>.*\$/TITLE: \1/p;
+        s/^.*<link>\(.*\)<\/link>.*\$/$(tput dim)LINK: \1\n$(tput sgr0)/p;
+    "

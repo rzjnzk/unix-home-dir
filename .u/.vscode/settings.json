@@ -1,0 +1,6 @@
+{
+    "files.associations":
+    {
+        "**/config/u/remotes/*": ".conf"
+    }
+}

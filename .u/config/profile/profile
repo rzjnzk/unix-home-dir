@@ -1,0 +1,85 @@
+# shellcheck disable=SC2148,SC2155
+
+# NOTE: Since the path is not exported, it only effects user-entered commands and is not inherited by child processes.
+PATH="${U_DIR}/local/bin:${U_DIR}/bin:${HOME}/bin:${HOME}/.local/bin:${HOME}/.config/emacs/bin:${PATH}"
+
+# Enable numbered backups for mv, cp, and similar commands to ensure multiple backup versions are retained rather than the previous backup being overwritten.
+export VERSION_CONTROL="numbered"
+
+# Ensure GPG uses the current terminal for interactive prompts, such as passphrase entry.
+export GPG_TTY="$(tty)"
+
+export MAKEFLAGS="${MAKEFLAGS} $(
+    lscpu |
+        sed -n \
+            "
+                /^CPU(s): *.*\$/ \
+                {
+                    s/^CPU(s): * \(.*\)\$/-j \1/;
+                    p;
+                }
+            "
+    )"
+
+export GNUMAKEFLAGS="${MAKEFLAGS}"
+
+export EDITOR="code"
+export GIT_EDITOR="code --wait"
+
+# NOTE: The `s` could mean: shortcut, swift, snap, skip, select, shuttle, streamlined, switch, or shift.
+# TODO: Move to config when scripts dir functionality is set up.
+cds()
+{
+    case \
+        "${1}"
+    in
+        u )
+            cd "${U_DIR}"
+            ;;
+        h )
+            cd "${HOME}"
+            ;;
+        c )
+            cd "/mnt/c"
+        ;;
+        d )
+            cd "/mnt/d"
+        ;;
+        winu )
+            cd "/mnt/c/Users/User"
+        ;;
+        desktop )
+            cd "/mnt/c/Users/User/Desktop"
+        ;;
+        bb )
+            cd "${HOME}/wd/github.com/marthfr/bbqcityrestaurant-website"
+            ;;
+        ser )
+            cd "${HOME}/wd/github.com/marthfr/bbqcityrestaurant-website/src/apps/server"
+            ;;
+        cli )
+            cd "${HOME}/wd/github.com/marthfr/bbqcityrestaurant-website/src/apps/client"
+            ;;
+        * )
+            cd "${1}"
+            ;;
+    esac
+}
+
+U_IS_SMCUP=false
+
+asc()
+{
+    if
+        test "${U_IS_SMCUP}" = false
+    then
+        tput smcup 2> /dev/null || :
+        tput cup 0 0 2> /dev/null || :
+
+        U_IS_SMCUP=true
+    else
+        tput rmcup 2> /dev/null || :
+
+        U_IS_SMCUP=false
+    fi
+}

@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# NAME
+#     e - edit files, arguments are appended to the command specified by the `EDITOR` env variable
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+set -e
+
+# _script_name="$(basename -- "${0}")"
+# _script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+# shellcheck disable=SC2086,SC2154
+set -- ${EDITOR} "${@}"
+
+exec "${@}"

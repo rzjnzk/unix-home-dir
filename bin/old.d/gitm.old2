@@ -1,0 +1,1151 @@
+#!/bin/bash
+#
+#
+# NAME
+#     gitm - interactive POSIX-compilant portable bourne shell script for managing repositories on GitHub
+
+# TODO: Abstract the menu if conditions into the interactivity and argument parsing lib script or scripts. Consider how to robustly make the loop `continue` without doing it on any error, but only when a specific line is reached.
+# TODO: Commit diff. Add an option to show a colorised side-by-side, by default, as opposed to inline, diff of the latest commit and the previous commit for a repository. Each side should show the full git message The user should be able to switch CoPilot: This should be done by using the `git diff` command with the `--color-words` option and the `HEAD` and `HEAD~1` arguments. The `--color-words` option should be used to show the differences in the latest commit and the previous commit in a side-by-side format. The `HEAD` and `HEAD~1` arguments should be used to compare the latest commit and the previous commit. The `git diff` command should be used to show the differences in the latest commit and the previous commit in a side-by-side format. The `--color-words` option should be used to show the differences in the latest commit and the previous commit in a side-by-side format. The `HEAD` and `HEAD~1` arguments should be used to compare the latest commit and the previous commit.
+# TODO: Finish repo name change logic.
+# TODO: Add file dynamic text insertion for example, inserting the repository descript, name, and other details into the `README.md`. ALso consider frankenstein templates.
+# TODO: What does this mean? Make edit repository name logic instead me a menu with a list of options for things that can be edited. Name, description, visibility, remove readd template, owner, squash, rename branch, delete branch, other branch commands etc. Maybe move delete under this. These options could instead be in the main menu to reduce user input.
+# TODO: Implement various commit, push, pull, and fetch functionality. Use commit message file with outomatic character wrapping. Implement rolling back to a given commit. Commit message AI completion assistance or message generation based on added changes or a prompt.
+# TODO: Loosely related to this script. Set code as the default editor. Make git message editor be code.
+# TODO: Implement automatic GitHub account repository backup to a second account or local directory.
+# TODO: Implement clone existing repositories, select one or multiple using space seperated grep values.
+# TODO: Implement create remote repo for existing local non-respository dir or repository dir.
+# TODO: Implement multi-user authentication with a default account so `${_existing_repositories}` will include repositories from all authenticated accounts and any public repos from specified accounts that are not authenticated. Repository creation should be done on the default account unless a username is specified before the repository name.
+# TODO: Implement not generic git remotes (non-GitHub).
+# TODO: Consider other popular versioning systems, and ftp, etc.
+# TODO: Handle multiple remotes, such as `unix-home-dir`, and `unix-home-dir-staging` for pre reasleased code.
+# TODO: `gh issue list`.
+# TODO: Consider git command passthrough or see if its possible to use this script via a `git` command alias.
+
+# https://cli.github.com/manual/gh
+# Core commands
+# gh auth
+# gh browse
+# gh codespace
+# gh gist
+# gh issue
+# gh org
+# gh pr
+# gh project
+# gh release
+# gh repo
+# GitHub Actions commands
+# gh cache
+# gh run
+# gh workflow
+# Additional commands
+# gh alias
+# gh api
+# gh completion
+# gh config
+# gh extension
+# gh gpg-key
+# gh label
+# gh ruleset
+# gh search
+# gh secret
+# gh ssh-key
+# gh status
+# gh variable
+
+# GitHub Copilot: Yes, the GitHub CLI (`gh`) does provide some interaction with GitHub Actions. As of `gh` version 2.0.0, you can use the `gh` command to list, view, and watch the workflow runs.
+
+# Here are some examples:
+
+# 1. **List workflow runs**: This command lists the most recent workflow runs.
+
+# ```bash
+# gh run list
+# ```
+
+# 2. **View a specific workflow run**: This command shows detailed information about a specific workflow run. You'll need to replace `run-id` with the ID of the run you want to view.
+
+# ```bash
+# gh run view <run-id>
+# ```
+
+# 3. **Watch a workflow run**: This command allows you to watch the progress of a workflow run in real time. Again, replace `run-id` with the ID of the run you want to watch.
+
+# ```bash
+# gh run watch <run-id>
+# ```
+
+# Please note that the `gh` command does not currently support triggering workflow runs or re-running failed workflow runs. You'll need to use the GitHub website or the GitHub REST API for these tasks.
+
+# ---
+
+# GitHub Copilot: The GitHub CLI (`gh`) provides several commands to interact with GitHub issues. Here are some examples:
+
+# 1. **List issues**: This command lists issues in a repository.
+
+# ```bash
+# gh issue list
+# ```
+
+# 2. **View an issue**: This command shows detailed information about a specific issue. Replace `issue-number` with the number of the issue you want to view.
+
+# ```bash
+# gh issue view <issue-number>
+# ```
+
+# 3. **Create an issue**: This command creates a new issue. It will open an editor where you can enter the issue title and body.
+
+# ```bash
+# gh issue create
+# ```
+
+# 4. **Close an issue**: This command closes a specific issue. Replace `issue-number` with the number of the issue you want to close.
+
+# ```bash
+# gh issue close <issue-number>
+# ```
+
+# 5. **Reopen an issue**: This command reopens a specific issue. Replace `issue-number` with the number of the issue you want to reopen.
+
+# ```bash
+# gh issue reopen <issue-number>
+# ```
+
+# 6. **Status of issues**: This command shows the status of relevant issues.
+
+# ```bash
+# gh issue status
+# ```
+
+# Remember to navigate to the repository's directory in your local system before running these commands, or use the `-R` flag to specify the repository. For example:
+
+# ```bash
+# gh issue list -R owner/repo
+# ```
+
+# This will list the issues in the `owner/repo` repository.
+
+set -e
+
+_install_webi_sh()
+{
+    # Add `${HOME}/.local/bin` to the `${PATH}` environment variable if it is not already present.
+
+    printf "%s\n" "Checking whether \`${HOME}/.local/bin\` is in the \`PATH\` environment variable ..."
+
+    if
+        printf "%s" "${PATH}" | grep -qF -- "${HOME}/.local/bin"
+        # printf -- "${PATH}" | sed "@${HOME}/.local/bin@!d;q" >/dev/null 2>&1
+    then
+        printf "%s\n" "\`${HOME}/.local/bin\` is already in the \`PATH\` environment variable."
+    else
+        printf "%s\n" "Adding \`${HOME}/.local/bin\` to the \`PATH\` environment variable ..."
+        export PATH="${PATH}:${HOME}/.local/bin"
+        printf "%s\n" "\`${HOME}/.local/bin\` added to the \`PATH\` environment variable."
+    fi
+
+    for \
+        _command in "$@"
+    do
+        if
+            test -z "$(command -v "${_command}")"
+        then
+            printf "Installing \`${_command}\` ...\n"
+            curl -S "https://webi.sh/${_command}" | sh
+        fi
+    done
+}
+
+_install_gh_extensions()
+{
+    while
+        test "$#" -gt 0
+    do
+        _extension="${1}"
+
+        shift
+
+        _is_required=false
+
+        if
+            test "${1}" = "--required"
+        then
+            _is_required=true
+            shift
+        fi
+
+        # If extension is not already installed, install it.
+        if
+            test -z "$(gh extension list | grep -F -- "${_extension}")"
+        then
+            printf "%s\n" "Installing \`${_extension}\` \`gh\` extension ..."
+
+            if
+                gh extension install "${_extension}"
+            then
+                printf "%s\n" "Success: \`${_extension}\` \`gh\` extension installed."
+            else
+                _install_error_code="$?"
+
+                printf "%s\n" "Error: \`${_extension}\` \`gh\` extension failed to install."
+
+                if
+                    test "${_is_required}" = true
+                then
+                    exit "${_install_error_code}"
+                fi
+            fi
+        else
+            printf "%s\n" "\`${_extension}\` extension is already installed."
+        fi
+    done
+}
+
+if
+    test -z "$(command -v gh)"
+then
+    _install_webi_sh \
+        "gh"
+fi
+
+# _install_gh_extensions \
+#     "github/gh-copilot"
+
+# If the user is not authenticated with GitHub via `gh` (GitHub CLI), prompt the user for authentication.
+if
+    test -z "$(gh auth status)"
+then
+    printf "No GitHub authentication for \`gh\` (GitHub CLI). Authenticate now ...\n"
+    gh auth login
+fi
+
+# If the `${GITM_DIR_REPOSITORIES}` environment variable is not set, set it to the default directory.
+if
+    test -z "$(printf "%s" "${GITM_DIR_REPOSITORIES}")"
+then
+    GITM_DIR_REPOSITORIES="${HOME}/wd/github.com/$(gh api user --jq '.login')"
+fi
+
+# Check if the `${GITM_DIR_REPOSITORIES}` environment variable contains a valid directory and that the directory is readable and writable.
+# TODO: Handle the case in which `${GITM_DIR_REPOSITORIES}` begins with a `-` if necessary.
+mkdir -pv -- "${GITM_DIR_REPOSITORIES}"
+test -d "${GITM_DIR_REPOSITORIES}" || printf "%s\n" "${GITM_DIR_REPOSITORIES} is not a valid directory, please create it manually."
+test -r "${GITM_DIR_REPOSITORIES}" || chmod +r -- "${GITM_DIR_REPOSITORIES}"
+test -w "${GITM_DIR_REPOSITORIES}" || chmod +w -- "${GITM_DIR_REPOSITORIES}"
+
+_print_invalid_input()
+{
+    tput setaf 1
+    printf "\n"
+    printf "Error: Invalid input. "
+    test "${1}" = "index" && printf "Input does not match any menu options via index or grep selection."
+    printf "\n"
+    tput sgr0
+}
+
+# TODO: List and test all possible input cases for index and substring selection intended prompts.
+_read_selection_to_index()
+{
+    _is_valid_input=true
+
+    # Convert the `${_selection}` to lowercase.
+    _selection="$(printf -- "${_selection}" | sed "s/ //g; y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/")"
+
+    # If `${_selection}` is not an empty string and is not an integer, check if it is a substring of a menu option.
+    if
+        test -n "${_selection}" \
+        && ! printf -- "${_selection}" | grep -q "^[0-9][0-9]*$"
+    then
+            # Remove lines from the prompt that do not begin with an integer.
+        # Then, remove all spaces. Then, convert to lowercase.
+        # Then, remove lines that do not contain the user input substring `${_selection}`.
+        # Finally, extract the option numbers from the beginning of each line.
+        _selection="$(
+            printf -- "${_prompt}" \
+            | sed "s/ //g" \
+            | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" \
+            | sed "/^[0-9]/!d" \
+            | grep -F -- "${_selection}" \
+            | sed "s/^\([0-9][0-9]*\).*$/\1/"
+        )"
+
+        # If more than one option was selected, reissue the prompt by continuing to the next iteration of the loop.
+        if
+            test -z "${_selection}" \
+            || ! printf -- "${_selection}" | grep -q "^[0-9][0-9]*$" \
+            || test "$(printf -- "${_selection}" | sed -n "$=")" -ne 1
+        then
+            _is_valid_input=false
+            _print_invalid_input index
+        fi
+    fi
+}
+
+_set_prompt_and_print()
+{
+    _prompt="$(printf "%s\n" "" "${@}")"
+    printf -- "${_prompt}"
+
+    # TODO: Implement allow left and right arrow key and ctrl plus left and right arrow key usage, as well as input history with up and down arrow keys.
+    # TODO: Implement tab completion.
+
+    # Attempt to clear the buffer. Non-POSIX-compliant.
+    # while
+    #     read -r -t 0 > /dev/null 2>&1
+    # do
+    #     read -r
+    # done
+
+    tput setaf 5
+    printf "\n\n> "
+    tput sgr0
+    read _selection
+}
+
+_prompt_next="MAIN_MENU"
+
+# Print the main menu and prompt the user for input.
+while
+    :
+do
+    if
+        test "${_prompt_next}" = "MAIN_MENU"
+    then
+        _set_prompt_and_print \
+            "Main menu." \
+            "" \
+            "" \
+            "Current authentication:" \
+            "" \
+            "$(gh auth status | sed "s/^/| /")" \
+            "" \
+            "1. Create repository (default)." \
+            "2. Rename repository." \
+            "3. Delete repository." \
+            "4. Manage authentication." \
+            "5. Exit."
+
+        _prompt_next__return_to=""
+
+        # Set the `--limit` argument to the maximum accepted value: the maximum value for a signed 64-bit integer, which can be represented as `2^63 - 1`.
+        _existing_repositories="$(
+            _indent="    "
+
+            # NOTE: `updateAt` is recieved in ISO 8601 format before it is parsed.
+            gh repo list --json "name,owner,visibility,description,updatedAt,url,licenseInfo" --jq "
+                sort_by(.owner.login, .name)[] |
+                \"$(tput setaf 4)\(.owner.login)$(tput sgr0)/$(tput setaf 5)\(.name)$(tput sgr0)\"
+                + (
+                    if
+                        .visibility == \"PRIVATE\"
+                    then
+                        \"$(tput setaf 1 && tput dim) [\(.visibility)]$(tput sgr0)\\n\"
+                    else
+                        \"$(tput setaf 3 && tput dim) [\(.visibility)]$(tput sgr0)\\n\"
+                    end
+                )
+                + (
+                    if
+                        .description != \"\"
+                    then
+                        \"- \(.description)\\n\"
+                    else
+                        \"\"
+                    end
+                )
+                + \"$(tput dim)- <\(.url)>$(tput sgr0)\"
+            "
+
+            # .diskUsage
+            # .stargazerCount
+            # .isArchived
+        )"
+
+        _repository_owner="$(gh api user --jq ".login")"
+
+        _read_selection_to_index
+        test "${_is_valid_input}" = false && continue
+
+        if
+            test -z "${_selection}" || test "${_selection}" -eq 1
+        then
+            _prompt_next="REPOSITORY_CREATE__TEMPLATE"
+        elif
+            test "${_selection}" -eq 2
+        then
+            _prompt_next="REPOSITORY_RENAME"
+        elif
+            test "${_selection}" -eq 3
+        then
+            _prompt_next="REPOSITORY_DELETE"
+        elif
+            test "${_selection}" -eq 4
+        then
+            _prompt_next="AUTHENTICATION_MANAGE"
+        elif
+            test "${_selection}" -eq 5
+        then
+            exit
+        else
+            _print_invalid_input index
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_CREATE__TEMPLATE"
+    then
+        _set_prompt_and_print \
+                "Select template." \
+                "" \
+                "" \
+                "No template (default)." \
+                "" \
+                "" \
+                "Repositories:" \
+                "" \
+                "${_existing_repositories}"
+                # "Template repositories." \
+                # "" \
+                # "${_existing_repositories}" \
+                # "" \
+                # "Non-template repositories." \
+                # "" \
+                # "" \
+                # "${_existing_repositories}"
+
+        _repository_create__template="${_selection}"
+
+        if
+            test -z "${_repository_create__template}"
+        then
+            _repository_create__template_type="NONE"
+
+            if
+                test -n "${_prompt_next__return_to}"
+            then
+                _prompt_next="${_prompt_next__return_to}"
+            else
+                _prompt_next="REPOSITORY_CREATE__NAME"
+            fi
+        else
+            printf "\n"
+
+            _repository_create__template_data="$(gh api "repos/${_repository_owner}/${_repository_create__template}" --jq ".is_template" || :)"
+
+            if
+                test "${_repository_create__template_data}" = true
+            then
+                _repository_create__template_type="TEMPLATE"
+                printf -- "\`${_repository_create__template}\`. Repository's default branch will be used as a template.\n"
+                _prompt_next="REPOSITORY_CREATE__NAME"
+            elif
+                test "${_repository_create__template_data}" = false
+            then
+                _repository_create__template_type="NON_TEMPLATE"
+                printf -- "\`${_repository_create__template}\`. Repository's default branch code will be copied to new repository.\n"
+                _prompt_next="REPOSITORY_CREATE__NAME"
+            else
+                printf -- "Error: \`${_repository_owner}/${_repository_create__template}\` is not a repository.\n"
+                continue
+            fi
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_CREATE__NAME"
+    then
+        _set_prompt_and_print \
+            "Enter the name of the new repository." \
+            "" \
+            "" \
+            "Existing repositories:" \
+            "" \
+            "${_existing_repositories}"
+
+        if
+            test -n "${_selection}" \
+            && ! gh api "repos/${_repository_owner}/${_selection}" --jq ".full_name" > /dev/null 2>&1
+        then
+            _repository_create__name="${_selection}"
+
+            if
+                test -n "${_prompt_next__return_to}"
+            then
+                _prompt_next="${_prompt_next__return_to}"
+            else
+                _prompt_next="REPOSITORY_CREATE__VISIBILITY"
+            fi
+        else
+            _print_invalid_input
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_CREATE__DESCRIPTION"
+    then
+        _set_prompt_and_print \
+            "Enter a description for the repository." \
+            "" \
+            "" \
+            "Blank (default)."
+
+        _description=
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_CREATE__VISIBILITY"
+    then
+        _set_prompt_and_print \
+                "Set the repository visibility." \
+                "" \
+                "" \
+                "1. \`private\` (default)." \
+                "2. \`public\`." \
+                "3. \`internal\`."
+
+        _read_selection_to_index
+        test "${_is_valid_input}" = false && continue
+
+        if
+            test -z "${_selection}" || test "${_selection}" -eq 1
+        then
+            _repository_create__visibility="private"
+            _prompt_next="REPOSITORY_CREATE__CONFIRMATION"
+        elif
+            test "${_selection}" -eq 2
+        then
+            _repository_create__visibility="public"
+            _prompt_next="REPOSITORY_CREATE__CONFIRMATION"
+        elif
+            test "${_selection}" -eq 3
+        then
+            _repository_create__visibility="internal"
+            _prompt_next="REPOSITORY_CREATE__CONFIRMATION"
+        else
+            _print_invalid_input index
+            continue
+        fi
+    fi
+
+    # https://docs.github.com/en/rest/licenses/licenses?apiVersion=2022-11-28#get-all-commonly-used-licenses
+    # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository
+
+    # if
+    #     test "${_prompt_next}" = "REPOSITORY_CREATE__LICENSE"
+    # then
+    #     # TODO: Add descriptions and use cases for each license.
+
+    #     _set_prompt_and_print \
+    #             "Select a license." \
+    #             "" \
+    #             "" \
+    #             "1. No license (default)." \
+    #             "2. MIT." \
+    #             "3. Apache-2.0." \
+    #             "4. GPL-3.0." \
+    #             "5. AGPL-3.0." \
+    #             "6. LGPL-3.0." \
+    #             "7. MPL-2.0." \
+    #             "8. BSL-1.0."
+    # fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_CREATE__CONFIRMATION"
+    then
+        # TODO: Add and implement local repository creation prompt.
+
+        _prompt_next__return_to="REPOSITORY_CREATE__CONFIRMATION"
+
+        _set_prompt_and_print \
+                "Confirmation." \
+                "" \
+                "" \
+                "1. Confirm (default)." \
+                "2. Change template. \`${_repository_create__template}\`." \
+                "3. Change repository name. \`${_repository_create__name}\`." \
+                "4. Change repository visibility. \`${_repository_create__visibility}\`."
+                # "" \
+                # "5. Set branches." \
+
+        _read_selection_to_index
+        test "${_is_valid_input}" = false && continue
+
+        # TODO: Maybe ask the user whether they want to clone the repository locally in a new prompt if statement.
+
+        if
+            test -z "${_selection}" || test "${_selection}" -eq 1
+        then
+            printf "\n"
+
+            if
+                test "${_repository_create__template_type}" = "TEMPLATE"
+            then
+                gh repo create "${_repository_create__name}" "--${_repository_create__visibility}" --template "${_repository_create__template}"
+                printf "potato\n"
+                gh repo clone "${_repository_create__name}" "${GITM_DIR_REPOSITORIES}/${_repository_create__name}"
+            elif
+                test "${_repository_create__template_type}" = "NON_TEMPLATE"
+            then
+                gh repo clone "${_repository_create__template}" "${GITM_DIR_REPOSITORIES}/${_repository_create__name}" -- --single-branch
+                gh repo create "${_repository_create__name}" "--${_repository_create__visibility}"
+                git -C "${GITM_DIR_REPOSITORIES}/${_repository_create__name}" remote set-url origin "$(gh repo view "${_repository_create__name}" --json url -q ".url")"
+                git -C "${GITM_DIR_REPOSITORIES}/${_repository_create__name}" push -u origin master
+            else
+                gh repo create "${_repository_create__name}" "--${_repository_create__visibility}"
+                gh repo clone "${_repository_create__name}" "${GITM_DIR_REPOSITORIES}/${_repository_create__name}"
+            fi
+
+            gh api -XPATCH "repos/${_repository_owner}/${_repository_create__name}" -f default_branch=master
+
+            _prompt_next="MAIN_MENU"
+        elif
+            test "${_selection}" -eq 2
+        then
+            _prompt_next="REPOSITORY_CREATE__TEMPLATE"
+        elif
+            test "${_selection}" -eq 3
+        then
+            _prompt_next="REPOSITORY_CREATE__NAME"
+        elif
+            test "${_selection}" -eq 4
+        then
+            _prompt_next="REPOSITORY_CREATE__VISIBILITY"
+        else
+            _print_invalid_input index
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_RENAME"
+    then
+        _set_prompt_and_print \
+            "Rename repository." \
+            "" \
+            "" \
+            "Repositories:" \
+            "" \
+            "${_existing_repositories}"
+
+        # If the specified repository exists on the remote.
+        if
+            test -n "${_selection}" \
+            && gh api "repos/${_repository_owner}/${_selection}" --jq ".full_name" > /dev/null 2>&1
+        then
+            _repository_rename__name="${_selection}"
+            _prompt_next="REPOSITORY_RENAME__NAME_NEW"
+        else
+            _print_invalid_input
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_RENAME__NAME_NEW"
+    then
+        _set_prompt_and_print \
+            "Enter the new name for the repository." \
+            "" \
+            "" \
+            "Existing repositories:" \
+            "" \
+            "${_existing_repositories}"
+
+        if
+            test -n "${_selection}" \
+            && ! gh api "repos/${_repository_owner}/${_selection}" --jq ".full_name" > /dev/null 2>&1
+        then
+            mv -- "${GITM_DIR_REPOSITORIES}/${_repository_rename__name}" "${GITM_DIR_REPOSITORIES}/${_selection}"
+            gh repo rename "${_repository_owner}/${_repository_rename__name}" "${_selection}"
+            _prompt_next="MAIN_MENU"
+        else
+            _print_invalid_input
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_DELETE"
+    then
+        _set_prompt_and_print \
+            "Delete repository." \
+            "" \
+            "" \
+            "Repositories:" \
+            "" \
+            "${_existing_repositories}"
+
+        # printf "\n"
+
+        _delete_reposiory__name="${_selection}"
+
+        if
+            test -n "${_selection}" \
+            && gh api "repos/${_repository_owner}/${_delete_reposiory__name}" --jq ".full_name" > /dev/null 2>&1
+        then
+            _prompt_next="REPOSITORY_DELETE__LOCATION"
+        else
+            _print_invalid_input
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_DELETE__LOCATION"
+    then
+        _set_prompt_and_print \
+            "Select deletion target location." \
+            "" \
+            "" \
+            "1. Cancel (default)." \
+            "2. Local only." \
+            "3. Local only after commit and push." \
+            "4. Remote only." \
+            "5. Remote and local."
+
+            # "1. Cancel (default)." \
+            # "2. Local only." \
+            # "3. Local only, after commit and push." \
+            # "4. Remote only." \
+            # "5. Remote only, after pull." \
+            # "6. Remote and local."
+
+        _read_selection_to_index
+        test "${_is_valid_input}" = false && continue
+
+        _is_repository_delete__commit_and_push=false
+
+        # if 2 or 3 or 5
+        #     if 3 commit and push
+        #     regardless, delete local
+        # if 4 or 5 delete remote
+
+        # if 2 or 3 or 5
+        #     if 3
+        #         commit and push
+        #     else
+        #         error so exit to prevent local deletion and data loss
+        #     fi
+        #     delete local
+
+
+
+        if
+            test -z "${_selection}" || test "${_selection}" -eq 1
+        then
+            printf "Deletion cancelled.\n"
+            _prompt_next="MAIN_MENU"
+        elif
+            test "${_selection}" -eq 2
+        then
+            _is_repository_delete__local=true
+            _is_repository_delete__remote=false
+        elif
+            test "${_selection}" -eq 3
+        then
+            _is_repository_delete__local=true
+            _is_repository_delete__remote=false
+            _is_repository_delete__commit_and_push=true
+            _prompt_next="REPOSITORY_DELETE__CONFIRMATION"
+        elif
+            test "${_selection}" -eq 4
+        then
+            _is_repository_delete__local=false
+            _is_repository_delete__remote=true
+            _prompt_next="REPOSITORY_DELETE__CONFIRMATION"
+        elif
+            test "${_selection}" -eq 5
+        then
+            _is_repository_delete__local=true
+            _is_repository_delete__remote=true
+            _prompt_next="REPOSITORY_DELETE__CONFIRMATION"
+        else
+            _print_invalid_input index
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "REPOSITORY_DELETE__CONFIRMATION"
+    then
+        _set_prompt_and_print \
+            "Confirmation." \
+            "" \
+            "" \
+            "1. Cancel (default)." \
+            "2. Confirm." \
+            "3. Commit and push, then confirm."
+            # "3. Confirm after commit and push."
+
+        printf "\n"
+
+        _read_selection_to_index
+        test "${_is_valid_input}" = false && continue
+
+        if
+            test "${_selection}" -eq 3
+        then
+            printf "Commit and push here. Make sure commit and push has no chance of failing before leaving if block and deleting."
+        fi
+
+        if
+            test -z "${_selection}" || test "${_selection}" -eq 1
+        then
+            printf "Deletion cancelled.\n"
+            _prompt_next="MAIN_MENU"
+        elif
+            test "${_selection}" -eq 2 || test "${_selection}" -eq 3
+        then
+            # printf -- "${_delete_reposiory__name}" && exit
+            test "${_is_repository_delete__remote}" = true && gh repo delete "${_delete_reposiory__name}"
+            test "${_is_repository_delete__local}" = true && rm -rfv "${GITM_DIR_REPOSITORIES}/${_delete_reposiory__name}"
+            _prompt_next="MAIN_MENU"
+        else
+            _print_invalid_input index
+            continue
+        fi
+    fi
+
+    if
+        test "${_prompt_next}" = "AUTHENTICATION_MANAGE"
+    then
+        printf "Manage authentication.\n"
+        _prompt_next="MAIN_MENU"
+    fi
+done
+
+# _existing_repositories="$(
+#     _indent="    "
+
+#     # NOTE: `updateAt` is recieved in ISO 8601 format before it is parsed.
+#     gh repo list --json "name,owner,visibility,description,updatedAt,url,licenseInfo" --jq "
+#         sort_by(.owner.login, .name)[] |
+#         \"$(tput setaf 4)\(.owner.login)$(tput sgr0)/$(tput setaf 5)\(.name)$(tput sgr0)\"
+#         + (
+#             if
+#                 .visibility == \"PRIVATE\"
+#             then
+#                 \"$(tput setaf 1 && tput dim) [\(.visibility)]$(tput sgr0)\\n\"
+#             else
+#                 \"$(tput setaf 3 && tput dim) [\(.visibility)]$(tput sgr0)\\n\"
+#             end
+#         )
+#         + \"$(tput dim)\"
+#         + (
+#             if
+#                 .description != \"\"
+#             then
+#                 \"${_indent}--> \(.description)\\n\"
+#             else
+#                 \"\"
+#             end
+#         )
+#         + \"${_indent}URL: <\(.url)>\\n\"
+#         + \"${_indent}License: \(.licenseInfo.name)\\n\"
+#         + \"${_indent}(\(.updatedAt | fromdate | strftime(\"%Y-%m-%d %H:%M:%S\")) UTC)\\n\"
+#         + \"$(tput sgr0)\"
+#     "
+
+#     # .diskUsage
+#     # .stargazerCount
+#     # .isArchived
+# )"
+
+# #!/bin/sh
+
+# set -e
+
+# # Check if gh is installed
+# if ! command -v gh >/dev/null 2>&1; then
+#     echo "gh is not installed, installing..."
+
+#     # Download the latest GitHub CLI release
+#     curl -sSL https://github.com/cli/cli/releases/latest/download/gh_`uname -s`_`uname -m`.tar.gz -o gh.tar.gz
+
+#     # Extract the downloaded tarball
+#     tar xvf gh.tar.gz
+
+#     # Move gh to /usr/local/bin
+#     mv gh_*_*/bin/gh /usr/local/bin/ || true
+
+#     # Clean up
+#     rm -rf gh_*_* gh.tar.gz
+# fi
+
+# # Check if the required number of arguments are passed
+# if [ "$#" -lt 2 ]; then
+#     echo "Usage: $0 {n/new|c/create|mk/make|d/delete|r/rm/remove} <repo_name> [pr/private|pu/public] [template_repo]"
+#     exit 1
+# fi
+
+# # Set the directory to create the new repo in
+# if [ -n "$GITM_DIR_REPO" ]; then
+#     REPO_DIR="$GITM_DIR_REPO"
+# elif [ -n "$HOME" ]; then
+#     REPO_DIR="${HOME}/repos/github.com/github_username_here"
+# else
+#     echo "No directory specified to create the new repo in"
+#     exit 1
+# fi
+
+# # Parse the command
+# case $1 in
+#     n|new|c|create|mk|make)
+#         # Create a new repo
+#         if [ "$#" -lt 3 ]; then
+#             echo "Usage: $0 {n/new|c/create|mk/make} <repo_name> [pr/private|pu/public] [template_repo]"
+#             exit 1
+#         fi
+
+#         REPO_NAME=$2
+#         REPO_VISIBILITY=$3
+#         TEMPLATE_REPO=$4
+
+#         # Create the repo on GitHub
+#         gh repo create $REPO_NAME --$REPO_VISIBILITY --template=$TEMPLATE_REPO
+
+#         # Clone the repo locally
+#         git clone https://github.com/github_username_here/$REPO_NAME.git $REPO_DIR/$REPO_NAME || true
+#         ;;
+#     d|delete|r|rm|remove)
+#         # Delete a repo
+#         REPO_NAME=$2
+
+#         # Delete the repo on GitHub
+#         gh repo delete github_username_here/$REPO_NAME || true
+
+#         # Delete the repo locally
+#         rm -rf $REPO_DIR/$REPO_NAME || true
+#         ;;
+#     *)
+#         echo "Invalid command: $1"
+#         exit 1
+#         ;;
+# esac
+
+#
+
+## GitHub CoPilot Prompt v1:
+
+# write a posix compliant bourne shell script that creates a new repository on GitHub
+
+# the first argument should be n/new or c/create or mk/make
+
+# the second argument should be the new repository name,
+
+# the third argument: pr/private or pu/public for the repository visibility,
+
+# the fourth argument: the name of an existing repository to use as the template, if this repository is a template repository it should be used such that the created project shows on GitHub that it was created from a template, if it is not a template repository, it should do the same if possible, otherwise it should simply copy the repository code into the new project. the template repository should be searched for in the users repositories, but is it is written in the form user/repository it should be sourced from the respective user, or if a link is supplied it should be sourced from that link. if this argument is not supplied it should be
+
+# write the code so I can easily add new arguments/sub-commands and functionality in the future
+
+# the directory to create the new repository in should be specified by the environment variable GITM_DIR_REPO if set; if GITM_DIR_REPO is not set, and there is a standard or common environment variable for a project or repository directory, that should be used instead; if neither are set, it should be stored in ${HOME}/repos/github.com/github_username_here. note that this directory is the root for all repositories, so the repository should be in "${GITM_DIR_REPO}/repository_name" for example.
+
+# I should also be able to have the first argument be d/delete or r/rm/remove and the second be the name of the repository to delete the repository on the remote and locally
+
+# ## GitHub CoPilot Prompt v2:
+
+# TODO:
+#     - Handle getting repository dir and add the option to override on a per creation basis.
+#     - Maybe allow for selection from multiple saved accounts.
+#     - Maybe add functionality to check existing repository names from all publicly hosted git repositories.
+#     - Colorisation.
+
+# Write a posix compliant portable bourne shell script that creates a new repository on GitHub.
+
+# Colorise output in a portable way, perhapse using tput if that is the most portable way.
+
+# Use if statements instead of case statements. Use the `test` command instead of square brackets. Use double quotes instead of single quotes. Use verbose variable references where possible. Example: `"${SOME_VAR}"`.
+
+# Add tab completion for all valid inputs.
+
+# Abstract code where it makes sense to do so.
+
+# Script functionality:
+
+# Handle errors so that the script stops executing with an appropriate error code if a command fails that will break script functionality, and do not stop the script execution if a command errors that will not break script functionality.
+
+# Automatically download dependencies if not installed in a distro-agnositc way and continue with the script functionality if they do not require additional setup, perform additional setup if possible, or instruct the user how to perform the setup if additional setup is required.
+
+# Later I want to allow for script use with arguments so it can be used non-interactivly, but for now, if no arguments are supplied to the script, show interactive options. Any option with the suffix of `(default)` should be selected if the entered input is any amount of spaces, an empty string, or the number preceeding the option.
+
+#     Check if the user is authenticated with GitHub, and, if not authenticated, prompt the user to authenticate with GitHub, and continue with the script functionality.
+
+#     The directory to create the new repository in should be specified by the environment variable GITM_DIR_REPO if that variable is set; if GITM_DIR_REPO is not set, and if there is a standard or common environment variable that is used to specify a programming project or repository directory, that should be used instead; if neither are set, it should be stored in ${HOME}/gitm/github.com/github_username_here. Note that this directory is the root for all repositories, so the repository contents should be in "repository_directory/repository_name" for example.
+
+#     Prompt the user for the following:
+
+#     ```
+#     Git project manager.
+
+
+#     Authenticated user details.
+
+#     authenticated_user_details_here
+
+
+#     Main menu.
+
+#     1. Create repository (default).
+#     2. Delete repository.
+#     3. Change authentication.
+#     4. Exit.
+#     ```
+
+#     `1. Create repository (default).` functionality:
+
+#         Step 1:
+
+#             Repositories that exist in the local repository directory should be colorised differently.
+
+#             List all of the authenticated users repositories in the following format:
+
+#             ```
+#             Select a template for the new repository.
+
+#             1. No template (default).
+
+
+#             Template Repos:
+
+#             2. repo1_name_here (repo1_visibility_here) <repo1_link_here>
+#             3. repo2_name_here (repo2_visibility_here) <repo2_link_here>
+
+
+#             Non-template Repos:
+
+#             4. repo4_name_here (repo3_visibility_here) <repo4_link_here>
+#             5. repo5_name_here (repo4_visibility_here) <repo5_link_here>
+#             ```
+
+#             To select a template the user should be able to use any of these methods, prompt the user for: the repository number; the name of the repository; the name in the format `github_account_name_here/repo_name_here` for repositories owned by an account that is not the authenticated account; the repository link for any git repository with any owner on any website. If the selected repository is a GitHub template repository, use the template repository so that on GitHub, the new repository shows that it was created from a template; otherwise, copy the repository code into the new repository if the user selected a template. For repositories owned by an account that is not the authenticated account: if the repository is private, the user should be prompted for authentication.
+
+#             Add tab completion using the listed existing repositories when slecting a template by entering the repository name for the authenticated account or the repository name for repositories owned by an account that is not the authenticated account.
+
+#         Step 2:
+#         How do i use gh, and perhapse other commands to read a users existing repositories, and output them in the following format in algined columns:
+
+#             ```
+
+#             ```
+#             List all of the authenticated user's repositories with their visibility in brackets after the repository name; and prompt the user for the new repository name. Repositories that exist in the local repository directory should be colorised differently.
+
+#             If the name matches an existing repository for the authenticated user, resend the prompt with the following message at the start of the prompt: `Error: a repository with the entered name already exists.`
+
+#             Add tab completion using the listed existing repositories for the new repository name.
+
+#             The default value should be `temp-0``, `temp-1`, `temp-2`, etc. if the entered input is any amount of spaces, an empty string, or the number preceeding the option. The name should be based on existing repositories it the format `temp-n`, it should not iterate upwards until it finds a name that is not alreay taken, instead it should look for the highest value for `n`, probably, or the last value should be read from and updated in a repository or gist to preserve redirects. Consider this behaviour and alternatives before implementing. Consider if this is wise, consider redirects especially.
+
+#             ```
+#             Enter the name of the new repository.
+
+
+#             Existing repositories:
+
+#             repo1_name_here (repo1_visibility_here) <repo1_link_here>
+#             repo2_name_here (repo2_visibility_here) <repo2_link_here>
+
+#             ```
+
+#         Step 3:
+
+#             Prompt the user for the new repository's visibility.
+
+#             ```
+#             Select the visibility of the new repository.
+
+#             1. private (default).
+#             2. public.
+#             ```
+
+#         Step 4:
+
+#             ```
+#             Select an option.
+
+#             1. Confirm (default).
+#             2. Change template. `link_to_repo_here`.
+#             3. Change repository name. `new_repo_name_here`.
+#             4. Change repository visibility. `public_or_private_here`.
+#             ```
+
+#             If confirm is selected, continue to the next step.
+
+#             If another option is selected, go back to the relevent step, and when the relevent step is completed, come back to this step.
+
+#         Step 4:
+
+#             Create the new repository using a template if one was selected.
+
+#             Once the repository successfully exists on the remote and the local machine, display the following:
+
+#             ```
+#             Success: repoitory created.
+
+#             Directory (absolute): new_repo_absolute_directory_here
+
+#             Directory (relative): new_repo_relative_directory_here
+
+#             Remote: <new_repo_link_here>
+#             ```
+
+#             If there is an error, delete any created files and directories and delete repository from the remote if created, then display the following and exit with an appropriate error code:
+
+#             ```
+#             Error: repository creation failed.
+
+#             descriptive_error_message_here
+#             ```
+
+#     `2. Delete repository.` functionality:
+
+#         Repositories that exist in the local repository directory should be colorised differently.
+
+#         ```
+#         Select the repository to be deleted.
+
+
+#         Existing repositories:
+
+#         1. repo1_name_here (repo1_visibility_here) <repo1_link_here>
+#         2. repo2_name_here (repo2_visibility_here) <repo2_link_here>
+
+#         ```
+
+#     `3. Change authentication.` functionality:
+
+#         Display the following:
+
+#         ```
+#         Select account.
+
+#         1. Add account (default).
+#         2. Remove account.
+
+#         3. <saved_account1_link_here>
+#         4. <saved_account2_link_here>
+
+#         5. Back (default).
+#         ```
+
+#         Colorise the currently selected account differently.
+
+#         If a saved account is selected, change authentication to that account and return to the main menu.
+
+#         If `Add account` is selected, prompt the user to authenticate a new account; and, if the authentication succeeds, return to the main menu with the new authentication selected, or, if it fails, resend the prompt with the following message at the start of the prompt: `Error: specific_error_message_here.`.
+
+#         If `Remove account` is selected, display the following:
+
+#         ```
+#         Select the account to remove.
+
+#         1. <saved_account1_link_here>
+#         2. <saved_account2_link_here>
+
+#         3. Back (default).
+#         ```
+
+#     `4. Exit.` functionality:
+
+#         Immediately exit script with an error code of `0`.

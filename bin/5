@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+printf "%s\n" "Script 5 recieved:" \
+    "" \
+    "${@}" \
+    "" \
+    ""
+
+\. "${HOME}/bin/lib.d/arg-parser.sh"
+
+_lib__arg_parser \
+    --remainder _remainder \
+    --bool _is_verbose "v verbose" \
+    --array _array n "a array" \
+    -- "${@}"
+
+printf "%s\n" "_rzjnzk1=\"${_rzjnzk1}\""
+printf "%s\n" "_rzjnzk2=\"${_rzjnzk2}\""
+printf "%s\n" "_remainder=\"${_remainder}\""
+printf "%s\n" "_is_verbose=\"${_is_verbose}\""
+printf "%s\n" "_array=\"${_array}\""

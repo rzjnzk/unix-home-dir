@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# NAME
+#     ws
+#
+# DESCRIPTION
+#     Automation script for The Univeristy of Adelaide's 'Web Submission' system.
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+_main()
+{
+# Print help and exit if a help flag was supplied.
+    test -n "$(printf -- "${_script_args}" | sed -n "/^--help$/ p ; /^-h$/ p")" &&
+        cat "${_script_path}/${_script_name}" |
+            sed -n "3,/^$/ { s/^# // ; s/^#// ; p }" &&
+                exit
+
+    _current_dir="$(pwd)"
+
+    _id_student=""
+
+    printf -- "Entering \"${_DIR_PREFIX_REPOS}\" dir ...\n"
+    mkdir -pv "${_DIR_PREFIX_REPOS}/${_id_student}"
+    cd "${_DIR_PREFIX_REPOS}"
+    chown rzjnzk . || :
+    chown rzjnzk ./* || :
+    chmod u=rwx,og=r . || :
+    chmod u=rwx,og=r ./* || :
+
+    case \
+        "${1}"
+    in
+        down )
+            sudo svn co https://version-control.adelaide.edu.au/svn/${_id_student}/
+            ;;
+        up )
+            printf -- "Entering \"${_DIR_PREFIX_REPOS}/${_id_student}\" dir ...\n"
+            cd a1731824
+            printf -- "Executing \"svn add * --force\" ...\n"
+            svn add --force -- *
+            printf -- "Executing \"svn commit -m \"$(date +%s)\"\" ...\n"
+            svn commit -m "$(date +%s)"
+            ;;
+    esac
+
+    printf -- "Entering \"${_current_dir}\" ...\n"
+    cd "${_current_dir}"
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+# mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" # | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"

@@ -1,0 +1,94 @@
+#!/bin/sh
+
+set -e
+
+# TODO: Consider using `gh` `--jq` formatting to print data in a format that is easily parsable by sed, and using sed to pretty-print and colorize.
+# TODO: Colorize the repo name differently for repos that are cloned locally.
+# TODO: Consider any further speed optomizations that might be possible, specifically relating to the while loop and it's scope. Consider using the `${HOME}/lib.d/colors.sh` lib, and consider alternate implementations of that lib.
+
+# If the `${_gitm_dir_repositories_user}` environment variable is not set, set it to the default directory.  
+if 
+    test -z "$(printf "%s" "${GITM_DIR_REPOSITORIES}")"
+then
+    # _gitm_dir_repositories_user="${HOME}/wd/github.com/$(gh api user --jq ".login")"
+    GITM_DIR_REPOSITORIES="${HOME}/wd/github.com"
+fi
+
+# _local_repository_dirs="$(find "${GITM_DIR_REPOSITORIES}" -mindepth 2 -maxdepth 2 -type d)"
+
+_page_no=1
+
+while 
+    :
+do
+    # Fetch a page of repositories and format them.
+    _page_content="$(
+        gh api "user/repos?type=all&per_page=100&page=${_page_no}" --jq \
+            "
+                map(
+                    select(.permissions.push == true and .permissions.pull == true)
+                ) |
+                sort_by(.owner.login, .name)[] |
+                \"$(tput setaf 4)\(.owner.login)$(tput sgr0)/$(tput setaf 5)\(.name)$(tput sgr0)\"
+                + (
+                    if .visibility == \"private\" then
+                        \" $(tput setaf 1 && tput dim)[\(.visibility)]$(tput sgr0)\"
+                    else 
+                        \" $(tput setaf 3 && tput dim)[\(.visibility)]$(tput sgr0)\"
+                    end
+                )
+                + \"$(tput dim)\\n\"
+                + (
+                    if .description != null then
+                        \"$(tput dim)- DESCRIPTION:$(tput sgr0) \(.description)$(tput dim)\\n\"
+                    else 
+                        \"\" 
+                    end
+                )
+                + \"- REMOTE: <\(.html_url)>$(tput sgr0)\"
+            " \
+            | while
+                IFS="" read -r _line
+            do
+                # if
+                #     test -n "$(printf "%s" "${_line}" | sed -n "/^[^-]/p")"
+                # then
+                #     printf "%s" \
+                #         "$(
+                #             printf "%s" "${_line}" | sed -n "s/^[^\\/]*\\/\\([^ ]*\\).*/\\1/p"
+                #         )"
+                # else
+                    # # Extract path from the URL using greedy matching.
+                    # _path_from_url="$(printf "%s" "${_line}" | sed -n "s/^- REMOTE: <https:\\/\\/github\\.com\\/\\(.*\\)>.*$/\\1/p")"
+                    
+                    # Extract path from the URL using lazy matching.
+                    _path_from_url="$(printf "%s" "${_line}" | sed -n "s/^- REMOTE: <https:\\/\\/github\\.com\\/\\([^>]*\\)>[^$]*/\\1/p")"
+                # fi
+
+
+                printf "%s\n" "${_line}"
+
+                if
+                    test -n "${_path_from_url}" \
+                    && test -d "${GITM_DIR_REPOSITORIES}/${_path_from_url}"
+                then
+                    printf "%s\n" "$(tput dim)- LOCAL: ${GITM_DIR_REPOSITORIES}/${_path_from_url}$(tput sgr0)"
+                fi 
+            done
+    )"
+
+    # If the page is empty, break since we have reached the end of the list of repositories.
+    if
+        test -z "${_page_content}"
+    then
+        break
+    fi
+
+    # Increment the page number.
+    _page_no="$(expr ${_page_no} + 1)"
+
+    # Print a page of repositories.
+    printf "%s" "${_page_content}"
+done
+
+printf "\n"

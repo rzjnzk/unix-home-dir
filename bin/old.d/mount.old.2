@@ -1,0 +1,135 @@
+#!/bin/sh
+
+_get_partitions_info_index()
+{
+
+    printf "%s" "${1}" | sed -n "//p"
+}
+
+_indent="    "
+
+# Get partitions information.
+_partitions_info="$(
+    powershell.exe -Command \
+        "
+            \$counter = 1
+            Get-Partition | ForEach-Object \
+            { 
+                \$vol = Get-Volume -Partition \$_ -ErrorAction SilentlyContinue; \
+                Write-Output \"\$counter|\$(\$_.DiskNumber)|\$(\$_.PartitionNumber)|\$(\$_.Type)|\$(\$_.PartitionSize)|\$(\$_.DriveLetter)|\$(\$vol.FileSystemLabel)|\$(\$_.Guid)\"; \
+                \$counter++ \
+            }
+        " \
+        | sed "s/\\r$//g"
+)"
+
+printf "Available drives and partitions:\n"
+
+# Read the partitions info from the variable.
+printf "%s\n" "${_partitions_info}" \
+| while \
+    IFS="|" read -r _counter _disk_number _partition_number _type _partition_size _drive_letter _label _guid
+do
+    # Print the option.
+    printf "%s\n" \
+        "(${_counter})" \
+        "${_indent}Disk number: ${_disk_number}" \
+        "${_indent}Partition number: ${_partition_number}" \
+        "${_indent}File system type: ${_type}" \
+        "${_indent}Partition size: ${_partition_size}" \
+        "${_indent}Drive letter: ${_drive_letter}" \
+        "${_indent}Partition label: ${_label}" \
+        "${_indent}GUID: ${_guid}"
+    printf "\n"
+done
+
+while \
+    :
+do
+    # Prompt user for selection.
+    printf "\nEnter the number of the partition to mount: "
+    read _selection
+    printf "\n"
+
+    if \
+        test -n "$(printf "%s" "${_selection}" | sed -n "/^[0-9][0-9]*$/p")"
+    then
+        break
+    else
+        printf "Invalid selection: input must be an integer.\n"
+    fi
+done
+
+# # Find the selected partition details.
+# _selected_line="$(printf "%b" "${_menu}" | grep "^${_selection}:")"
+
+# IFS=':' read -r _sel_counter _disk_number _partition_number _type <<EOF
+# ${_selected_line}
+# EOF
+
+printf "%s\n" "${_partitions_info}" \
+| while \
+    IFS="|" read -r _counter _disk_number _partition_number _type _partition_size _drive_letter _label _guid
+do
+
+    if
+        ! test "${_counter}" -eq "${_selection}"
+    then
+        continue
+    fi
+
+    _is_try_again=true
+
+    while \
+        test "${_is_try_again}" = true
+    do
+
+    echo $_type
+        # Determine filesystem type based on partition type.
+        if
+            test "${_type}" = "Unknown" || test -z "${_type}" 
+        then
+            printf "%s\n" \
+                "Cannot determine filesystem type for partition." \
+                "" \
+                "Some supported filesystem types:" \
+                "" \
+                "\`ext4\`, \`ext3\`, \`ext2\` (Linux Extended filesystems)" \
+                "\`ntfs\` - Windows NTFS" \
+                "\`vfat\` - FAT32/exFAT" \
+                "\`btrfs\`- BetterFS, B-tree FS" \
+                "\`xfs\` - XFS" \
+                "\`squashfs\` - SquashFS" \
+                "\`tmpfs\` - Temporary FS" \
+                "\`overlay\` - Overlay FS" \
+                "" \
+                "Enter filesystem type: "
+
+                read _type
+        elif
+            test -n "$(printf "%s" "${_type}" | sed -n "/EFI/p")"
+        then
+            _type="vfat"
+        elif
+            test -n "$(printf "%s" "${_type}" | sed -n "/^Basic$/p")"
+        then
+            _type="ntfs"
+        fi
+
+        # Mount the partition.
+        
+        set -x
+        
+        if
+            powershell.exe -Command "wsl --mount \"\\\\.\\PHYSICALDRIVE${_disk_number}\" --partition \"${_partition_number}\" --type \"${_type}\""
+        then
+            _is_try_again=false
+        else
+            _type=""
+        fi
+        
+        set +x
+    done
+
+    printf "Success.\n"
+done

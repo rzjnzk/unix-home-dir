@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# NAME
+#     clr - clear the terminal screen, alias for `clear`
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+set -e
+
+clear

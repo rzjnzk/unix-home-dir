@@ -1,0 +1,350 @@
+#!/bin/sh
+#
+# NAME
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX feature capable shell.
+#     - `apt-get`.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+#
+# NOTES
+#     VT-d and IOMMU support must be enabled in the BIOS (EFI).
+#         Advanced/CPU-config/etc.: `SVM Module` -> enable
+#         Advanced/AMD-CBS/etc.: `IOMMU` -> enable
+#     - Looking Glass
+#         - Main Repository: <https://github.com/gnif/LookingGlass>
+#         - Simple explanation: <https://www.youtube.com/watch?v=okMGtwfiXMo>
+#         - Technical explanation: <https://www.youtube.com/watch?v=U44lihtNVVM>
+
+(
+
+_main()
+{
+    # Print help and exit if a help flag was supplied.
+    case \
+        "${_script_args}"
+    in
+        --help|-h )
+            cat "${_script_path}/${_script_name}" |
+                sed -n "3,/^$/ { s/^# // ; s/^#// ; p }" &&
+                    exit
+            ;;
+    esac
+
+    # test -n "$(printf -- "${_script_args}" | sed -n "/^--help$/ p ; /^-h$/ p")" &&
+
+
+    _edit_config()
+    {
+        case \
+            "${1}"
+        in
+            add)
+                case \
+                    "${2}"
+                in
+                    keyval)
+                        _target_file="${3}"
+                        shift 3
+                        sudo touch "${_target_file}"
+                        cat "${_target_file}" | sed \
+                            "
+                                /^ *${1}=\"${2}\" *\$/ b end
+                                /^ *${1}=\".* ${2}\" *\$/ b end
+                                /^ *${1}=\"${2} .*\" *\$/ b end
+                                /^ *${1}=\".* ${2} .*\" *\$/ b end
+
+                                t
+                                s/\(^ *${1}=\"..*\)\(\" *\$\)/\1 ${2}\2/
+                                t end
+
+                                \$ a ${1}=\"${2}\"
+
+                                b
+                                :end
+                                n
+                                b end
+                            " \
+                                > "/tmp/${_script_name}.tmp" 2>&1
+                        sudo mv -f "/tmp/${_script_name}.tmp" "${_target_file}"
+                        ;;
+                    line)
+                        _target_file="${3}"
+                        shift 3
+                        sudo touch "${_target_file}"
+                        for _arg in \
+                            "${@}"
+                        do
+                            cat "${_target_file}" | sed \
+                                "
+                                    / *${_arg} */ b end
+
+                                    \$ a ${_arg}
+
+                                    b
+                                    :end
+                                    n
+                                    b end
+                                " \
+                                    > "/tmp/${_script_name}.tmp" 2>&1
+                            sudo mv -f "/tmp/${_script_name}.tmp" "${_target_file}"
+                        done
+                        ;;
+                esac
+                ;;
+            remove)
+                ;;
+        esac
+    }
+
+    sudo apt-get update -y
+    sudo apt-get upgrade -y
+    sudo apt-get install -y \
+        qemu-kvm \
+        libvirt-clients \
+        libvirt-daemon-system \
+        libvirt-bin \
+        virt-manager \
+        libvirt \
+        libvirt-client \
+        virt-install \
+        virt-viewer \
+        ovmf \
+        bridge-utils \
+        uml-utilities
+
+    # It is a good idea to add your username to these groups for general kvm usage as a desktop user.
+    sudo gpasswd -a "$(whoami)" kvm
+    sudo gpasswd -a "$(whoami)" libvirt
+    sudo gpasswd -a "$(whoami)" libvirt-qemu
+
+    tput setaf 4
+    printf -- "Checking for CPU VT-x or AMD-V support.\n"
+    tput sgr0
+    test -n "$(cat /proc/cpuinfo | sed -n "/ vmx / { p ; q } ; / svm / { p ; q }")" ||
+        {
+            tput setaf 1
+            printf -- "ERROR: Support not found. The feature may need to be enabled in the BIOS, or the hardware may not support this feature.\n"
+            tput sgr0
+            exit 1
+        }
+
+    # Check kernel modules have been loaded, else attempt manual loading.
+    test -n "$(sudo lsmod | sed -n "/1 kvm/ p")" ||
+        sudo modprobe kvm_intel
+
+    # Start the libvirtd daemon and enable it at boot time.
+    sudo systemctl enable --now libvirtd
+
+    # Enable iommu
+    # TODO: Or VT-d?
+    # TODO: iommu=1
+    _edit_config add keyval /etc/default/grub GRUB_CMDLINE_LINUX_DEFAULT intel_iommu=on
+    _edit_config add keyval /etc/default/grub GRUB_CMDLINE_LINUX_DEFAULT iommu=1
+    _edit_config add keyval /etc/default/grub GRUB_CMDLINE_LINUX_DEFAULT rd.driver.pre=vfio-pci
+    _edit_config add keyval /etc/default/grub GRUB_CMDLINE_LINUX_DEFAULT kvm.ignore_msrs=1
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+    sudo update-grub
+    # restart pc
+    # <https://unix.stackexchange.com/questions/145294/how-to-continue-a-script-after-it-reboots-the-machine>
+    dmesg | grep IOMMU
+
+    # get device ids of GPU to pass to vm
+    lspci -nn
+
+    _edit_config add line /etc/initramfs-tools/modules \
+        vfio \
+        vfio_iommu_type1 \
+        vfio_pci \
+        vfio_virqfd
+    # options vfio_pci ids=1002:67df,1002:aaf0 # TODO: Automate GPU specific data settings.
+    # vfio_pci ids=1002:67df,1002:aaf0 # TODO: Automate GPU specific data settings.
+
+    sudo update-initramfs -u
+
+    _edit_config add line /etc/modules \
+        vfio \
+        vfio_iommu_type1 \
+        vfio_pci \
+        kvm \
+        kvm_intel
+    # vfio_pci ids=1002:67df,1002:aaf0 # TODO: Automate GPU specific data settings.
+
+    # sudo virt-install \
+    #     --name=win-gpu-passthrough \
+    #     --vcpus=1 \
+    #     --memory=16384 # \
+    #     # --cdrom=/tmp/debian-9.0.0-amd64-netinst.iso \
+    #     # --disk size=5 \
+    #     # --os-variant=debian8
+
+
+    ##################################################################################
+    #     Cheat Sheet
+    ##################################################################################
+
+    # *NVIDIA Disclaimer*: Extra steps needed when VM is created in Part 2
+    # *Intel Disclaimer*: Steps shown are on an AMD CPU, make sure you sub out amd for intel in Part 1.
+
+    # Add the following to /etc/default/grub
+    # Check for line --- GRUB_CMDLINE_LINUX_DEFAULT="quiet"
+    # Add -- iommu=1 amd_iommu=on (Sub amd to intel depending on CPU)
+    # $ sudo update-grub
+    # Reboot!
+
+    # Verify IOMMU is enabled
+    # $ dmesg | grep IOMMU
+
+    # Lets Find the Card to passthrough
+    # $ lspci -nn | grep -iP "VGA|audio"
+
+    # Setup VFIO with Device numbers/id from above VIDEO AND AUDIO!
+    # $ sudo nano /etc/initramfs-tools/modules
+    # Add the following
+    # softdep amdgpu pre: vfio vfio_pci
+
+    # vfio
+    # vfio_iommu_type1
+    # vfio_virqfd
+    # options vfio_pci ids=1002:67df,1002:aaf0
+    # vfio_pci ids=1002:67df,1002:aaf0
+    # vfio_pci
+    # amdgpu
+
+    # $ sudo nano /etc/modules
+    # Add the following:
+    # vfio
+    # vfio_iommu_type1
+    # vfio_pci ids=1002:67df,1002:aaf0
+
+    # $ sudo nano /etc/modprobe.d/amdgpu.conf
+    # softdep amdgpu pre: vfio vfio_pci
+
+    # $ sudo nano /etc/modprobe.d/vfio_pci.conf
+    # options vfio_pci ids=1002:67df,1002:aaf0
+
+    # lspci -vnn | grep -iP "vga|amdgpu|nvidia|nouveau|vfio-pci"
+
+    # Avoid BSODs on New Windows 10 Installs
+    # $ sudo nano /etc/modprobe.d/kvm.conf
+    # options kvm ignore_msrs=1
+    # options kvm report_ignored_msrs=0
+
+    # Fix Apparmor restrictions
+    # $ sudo nano /etc/apparmor.d/abstractions/libvirt-qemu
+    # --Modify--
+    # # for usb access
+    # /dev/bus/usb/** rw,
+    # /etc/udev/udev.conf r,
+    # /sys/bus/ r,
+    # /sys/class/ r,
+    # /run/udev/data/* rw,
+    # --Append--
+    # # Looking Glass
+    # /dev/shm/looking-glass rw,
+    # $ sudo systemctl restart apparmor
+}
+
+set -e
+_script_name="$(basename -- "${0}")"
+_script_path="$(dirname -- "${0}")"
+_script_path="$(cd "${_script_path}" ; pwd)"
+_script_args="$(printf -- "%s\n" "${@}")"
+mkdir -p -- "${_script_path}/${_script_name}-logs"
+_main "${@}" | tee -a -- "${_script_path}/${_script_name}-logs/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC.log"
+
+)
+
+# SCRAP NOTES
+
+# # Enable iommu
+# sudo sed -in \
+#     "
+#         /^GRUB_CMDLINE_LINUX=\"intel_iommu=on\"/q ;
+#         s/^GRUB_CMDLINE_LINUX=.*$//g ;
+#         s/.*/\&\nGRUB_CMDLINE_LINUX=\"intel_iommu=on\"\n/g ;
+#     " \
+#         /etc/default/grub
+
+    # _vmx_svm_status=""
+# grep " vmx " /proc/cpuinfo && _vmx_svm_status="vmx"
+# grep " svm " /proc/cpuinfo && _vmx_svm_status="svm"
+
+
+# 	#!/bin/sh
+
+# # Source: http://vfio.blogspot.com/2015/05/
+
+# for i in $(find /sys/devices/pci* -name boot_vga); do
+# if [ $(cat $i) -eq 0 ]; then
+# GPU=$(dirname $i)
+# AUDIO=$(echo $GPU | sed -e "s/0$/1/")
+# echo "vfio-pci" > $GPU/driver_override
+# if [ -d $AUDIO ]; then
+# echo "vfio-pci" > $AUDIO/driver_override
+# fi
+# fi
+# done
+# modprobe -i vfio-pci
+
+
+
+
+
+# mkdir Backup
+# chmod +x uninstall.sh
+
+
+# cp /etc/modules Backup/etc_modules
+# cp /etc/default/grub Backup/
+# cp /etc/initramfs-tools/modules Backup/
+# cp /etc/modprobe.d/local.conf Backup/
+
+# nano /etc/default/grub
+
+# update-grub
+
+# echo "vfio" >> /etc/modules
+# echo "vfio_iommu_type1" >> /etc/modules
+# echo "vfio_pci" >> /etc/modules
+# echo "kvm" >> /etc/modules
+# echo "kvm_intel" >> /etc/modules
+
+# cp vfio-pci-override-vga.sh /sbin/vfio-pci-override-vga.sh
+
+# chmod 755 /sbin/vfio-pci-override-vga.sh
+
+# echo "install vfio-pci /sbin/vfio-pci-override-vga.sh" >> /etc/modprobe.d/local.conf
+
+# echo 'install_items+="/sbin/vfio-pci-override-vga.sh /usr/bin/find /usr/bin/dirname"' >> /etc/initramfs-tools/modules
+
+# update-initramfs -u
+
+
+
+
+# 	#!/bin/bash
+
+# sudo rm run.sh
+
+# echo "#!/bin/bash" >> run.sh
+# VERSION=$(cat /etc/issue | cut -c1-9 )
+
+# if [ "$VERSION" = 'Ubuntu 19' ]
+# then
+# 	echo "apt install qemu virt-manager ovmf qemu-utils libguestfs-tools" >> run.sh
+# else
+# 	echo "apt install qemu virt-manager ovmf qemu-utils" >> run.sh
+# fi
+
+# $(cat tail.sh >> run.sh )
+
+# sudo chmod +x run.sh
+
+# sudo ./run.sh
+
+# sudo rm run.sh

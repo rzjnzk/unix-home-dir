@@ -1,0 +1,211 @@
+#!/bin/sh
+#
+# NAME
+#     test-colors - test color terminal text attributes and display their `tput` and `ANSI` codes
+
+_sigint()
+{
+    tput sgr0 2> /dev/null || :
+    printf "\033[0m\n"
+
+    exit 130
+}
+
+trap _sigint INT || :
+
+_print_text_attribute_color_range()
+{
+    _number="${1}"
+
+    printf "%s\n\n" "${3}"
+
+    while
+        test "${_number}" -le "${2}"
+    do
+        # Calculate the ANSI SGR, or Select Graphic Rendition, parameters.
+        if
+            test "${_number}" -le 7
+        then
+            _ansi_fg_sgr_parameter="$(expr 30 + "${_number}")"
+            _ansi_bg_sgr_parameter="$(expr 40 + "${_number}")"
+        elif
+            test "${_number}" -le 15
+        then
+            # TODO: Is `-8` redundant?
+            _ansi_fg_sgr_parameter="$(expr 90 + "${_number}" - 8)"
+            _ansi_bg_sgr_parameter="$(expr 100 + "${_number}" - 8)"
+        else
+            _ansi_fg_sgr_parameter="38;5;${_number}"
+            _ansi_bg_sgr_parameter="48;5;${_number}"
+        fi
+
+        # printf "%-22s %-22s %-22s %-22s\n" \
+        #     "$(tput setaf "${_number}" 2> /dev/null)tput setaf ${_number}${_reset}" \
+        #     "$(tput setab "${_number}" 2> /dev/null) tput setab ${_number} ${_reset}" \
+        #     "${_csi}${_ansi_fg_sgr_parameter}m\\033[${_ansi_fg_sgr_parameter}m${_reset}" \
+        #     "${_csi}${_ansi_bg_sgr_parameter}m \\033[${_ansi_bg_sgr_parameter}m ${_reset}"
+        printf "%s%-14s%s %s%-16s%s %s%-14s%s %s%-16s%s\n" \
+            "$(tput setaf "${_number}" 2> /dev/null)" "tput setaf ${_number}" "${_reset}" \
+            "$(tput setab "${_number}" 2> /dev/null)" " tput setab ${_number} " "${_reset}" \
+            "${_csi}${_ansi_fg_sgr_parameter}m" "\\033[${_ansi_fg_sgr_parameter}m" "${_reset}" \
+            "${_csi}${_ansi_bg_sgr_parameter}m" " \\033[${_ansi_bg_sgr_parameter}m " "${_reset}"
+
+        _number="$(expr "${_number}" + 1)"
+    done
+
+    printf "\n\n"
+}
+
+_print_text_attribute()
+{
+    if
+        test -n "${3}"
+    then
+        _ansi_code_escape="${_csi}${3}m"
+        _ansi_code_display="\\033[${3}m"
+    else
+        _ansi_code_escape=""
+        _ansi_code_display="-------"
+    fi
+
+    if
+        test -n "${2}"
+    then
+        _escape_tput="$(tput "${2}" 2> /dev/null)"
+        _display_tput="tput ${2}"
+    else
+        _escape_tput=""
+        _display_tput="----------"
+    fi
+
+    printf "%-17s %s%-12s%s %s%-10s%s\n\n" \
+        "${1}:" \
+        "${_escape_tput}" " ${_display_tput} " "${_reset}" \
+        "${_ansi_code_escape}" " ${_ansi_code_display} " "${_reset}"
+}
+
+# NOTE: `\033` is the 'ASCII escape character'.
+# NOTE: `\033[` is the 'Control Sequence Introducer' or 'CSI'.
+_csi="$(printf "\033[")"
+
+_reset="$(tput sgr0 2> /dev/null)${_csi}0m"
+
+printf "\n"
+
+_print_text_attribute_color_range 16 255 "## Extended color palette:"
+_print_text_attribute_color_range 8 15 "## Bright or high-intensity color palette:"
+_print_text_attribute_color_range 0 7 "## Standard or basic color palette:"
+
+printf "%s\n\n" "## \`tput colors\` output:"
+printf "%s\n\n\n" "\`$(tput colors 2>&1)\`"
+
+printf "%s\n" \
+    "## Truecolor or 24-bit-RGB color support:" \
+    "" \
+    "\`\${COLORTERM}\` value: \`${COLORTERM}\`" \
+    "" \
+    "Orange text: ${_csi}38;2;255;100;0m\\033[38;2;255;100;0m${_reset}"
+
+
+printf "\n\n## Non-color terminal text attributes:\n\n"
+
+# TODO: Add any other ANSI terminal text SGR attributes that exist. See: https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters.
+
+_print_text_attribute "Bold" "bold" "1"
+_print_text_attribute "Dim" "dim" "2"
+_print_text_attribute "Italics" "sitm" "3"
+_print_text_attribute "Underline" "smul" "4"
+_print_text_attribute "Blink" "blink" "5"
+_print_text_attribute "Rapid Blink" "" "6"
+_print_text_attribute "Reverse" "rev" "7"
+_print_text_attribute "Standout" "smso" ""
+
+printf "%-17s %-12s %s%s%s%s\n\n" \
+    "Hidden \`\\033[8m\`:" " ----------" \
+    "[${_csi}8m" " HIDDEN " "${_reset}" "]"
+
+_print_text_attribute "Strikethrough" "" "9"
+_print_text_attribute "Fraktur (gothic)" "" "20"
+
+# TODO: `tput smulr` supposedly is possibly supported on mechines, though this causes an error on the testing mechine.
+_print_text_attribute "Double Underline" "" "21"
+
+_print_text_attribute "Overline" "" "53"
+_print_text_attribute "Superscript" "" "73"
+_print_text_attribute "Subscript" "" "74"
+
+printf "\n"
+printf "%s\n" \
+    "## Terminal dimentions:" \
+    "" \
+    "Terminal row count from \`tput lines\` output: \`$(tput lines 2>&1)\`" \
+    "Terminal column count from \`tput cols\` output: \`$(tput cols 2>&1)\`" \
+
+# ## **2. Other Terminal Capabilities to Test**
+
+# ### **a. Cursor Movement and Positioning**
+# - Move the cursor to a specific position (`tput cup`)
+# - Save and restore cursor position (`tput sc` and `tput rc`)
+# - Show/hide cursor (`tput civis` and `tput cnorm`)
+
+# ### **b. Screen Manipulation**
+# - Clear screen (`tput clear`)
+# - Clear to end of line (`tput el`)
+# - Clear to end of screen (`tput ed`)
+# - Scroll up/down (`tput ind`/`tput ri`)
+
+# ### **d. Alternate Screen Buffer**
+# - Switch to alternate screen (`tput smcup`), return (`tput rmcup`)
+# - Used by full-screen apps like `less`, `vim`, etc.
+# - For full-screen/scrolling, try using `tput smcup`/`rmcup` and cursor movement to draw and erase blocks.
+
+# ### **e. Input Capabilities**
+# - Test for function keys, arrow keys, etc. (more advanced, but possible)
+
+# ### **f. Unicode and Character Support**
+# - Print Unicode characters, box-drawing, emoji, etc.
+
+# ### **g. Mouse Support**
+# - Enable mouse reporting (advanced, but possible with escape codes)
+
+# ---
+
+# ## **3. Testing Redraw/Scrolling/Full-Screen Capabilities**
+
+# You can test:
+# - If the terminal supports rewriting squares (by moving the cursor and overwriting text)
+# - If alternate screen buffer is supported (like in `less`, `vim`)
+# - If the terminal supports smooth scrolling or partial redraws
+
+# ---
+
+# ## **4. Example: Testing Cursor Movement and Screen Manipulation**
+
+# Add a section like this to your script:
+
+# ```sh
+# printf "\nCURSOR MOVEMENT AND SCREEN MANIPULATION:\n\n"
+
+# printf "Moving cursor to row 5, col 10: "
+# tput cup 5 10
+# echo "Here!"
+
+# sleep 1
+
+# printf "Saving cursor position, moving, and restoring...\n"
+# tput sc
+# tput cup 10 20
+# echo "Moved!"
+# sleep 1
+# tput rc
+# echo "Back!"
+
+# printf "Clearing to end of line: "
+# echo -n "This will be cleared"
+# tput el
+# echo
+
+# printf "Clearing screen in 1 second...\n"
+# sleep 1
+# tput clear
+# ```

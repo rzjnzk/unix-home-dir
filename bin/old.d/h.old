@@ -1,0 +1,363 @@
+#!/bin/sh
+#
+# NAME
+#     home - install and manage rzjnzk's personal unix system configuration
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX-compliant shell.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+#
+# NOTES
+#     Main Repository: <https://github.com/rzjnzk/unix-home-dir>
+
+# TODO: Consider outsourcing logic to `~/bin` and `~/bin/lib.d` scripts. Attempt to find the relevent scripts in their expected install locations, and if they are not found, then download them from the main repository. Support usage of this script by piping the downloaded file to `sh` for users that dont want to install the full `unix-home-dir`, in which case, dependancy scripts should be used without saving to disk, or by saving to a conventional temp dir with full conflict prevention. This could also be the default behaviour for regular installation, though it would could network usage, though perhapse negligably, making script usage less confusing. Support temporary usage of any `~/bin` script thought an argument of this script: download and pipe this script to `sh`, then do the same inside this script.
+# TODO: Refactor for maximum backwards compatibility. The user should be able to use this script from their outdated install or by downloading and executing it from the main repository.
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+_script_path="$(cd "$(dirname -- "${0}")" && pwd)"
+
+cd "${HOME}"
+
+_repository_base__url="https://github.com/rzjnzk/unix-home-dir"
+_repository_base__name="unix-home-dir"
+
+_print_help()
+{
+    printf "%s\n" \
+        "${_repository_base__url}"
+
+    _i=0
+
+    for \
+        _path in "${HOME}/bin/"*
+    do
+        # Skip if the script is not a file, or if the script is the current script.
+        # TODO: Check if replacing the functionality of `!` in the `test` invokationm with somethign else will increase portability.
+        # TODO: Consider `! test -f "${_path}"`.
+        if
+            ! test -f "${_path}" \
+            || test "${_path}" = "${_script_path}/${_script_name}"
+        then
+            continue
+        fi
+            # _comment_section_name="$(
+            #         sed -n \
+            #             "
+            #                 /^# NAME *$/,/^# [^ ]/ \
+            #                 {
+            #                     /^# [^ ]/d;
+            #                     s/^# *\(.*\)/\1/g;
+            #                     p;
+            #                 }
+            #             " \
+            #             "${_script}"
+            #     )"
+
+            _i="$(expr "${_i}" + 1)"
+
+            # Print the script name.
+            tput setaf 4
+            # printf "%s" "${_i}. " "$(basename "${_path}")"
+            printf "%s" "$(basename "${_path}")"
+            tput sgr0
+
+            # Get the script description.
+            # Get the text from the line after the line starting with `# NAME` followed by any amount of spaces, extract only the text after the last occurence of ` - `.
+            _comment_section_name_description="$(
+                    sed -n \
+                        "
+                            /^# NAME *$/ \
+                            {
+                                n;
+
+                                / - / \
+                                {
+                                    s/^.* - //p;
+                                }
+                            }
+                        " \
+                        "${_path}"
+                )"
+
+            # Print the script description if it was found.
+            if
+                test -n "${_comment_section_name_description}"
+            then
+                tput dim
+                printf " - "
+                printf "%s" "${_comment_section_name_description}"
+                tput sgr0
+            fi
+
+            printf "\n"
+
+            # # If the script has a name comment, and it is not blank.
+            # if
+            #     # test -n "$(printf "%s" "${_comment_section_name}" | sed "/[^ \\t]/p")"
+            #     test -n "${_comment_section_name}"
+            # then
+            #     printf "%s\n" "${_comment_section_name}"
+            # else
+            #     printf "%s\n" "$(basename "${_script}")"
+            # fi
+    done
+
+    # /[^[:space:]]/,/^[[:space:]]*$/!d;
+
+    # sed -n "/^# DESCRIPTION *$/,/^# *$/ {
+    #     s/^# //g;
+    #     s/^#//g;
+    #     p
+    # }" ~/bin/build
+
+
+    # cat "${_script_path}/${_script_name}" \
+    # | sed -n "/^# DESCRIPTION *$/,/^# [^ ]$/ { s/^# //g ; s/^#//g ; p }"
+
+
+    # cat "${_script_path}/${_script_name}" 
+    # | sed -n "3,/^$/ { s/^# //g ; s/^#//g ; p }"
+}
+
+_install()
+{
+    # If current dir is a git repo with remote `${_repository_base__name}` by `github.com/rzjnzk`, then return.
+    # TODO: Remove need for sed quit with exit code to increase portability, as basic versions of sed do not support, for example, `q5`, only `q`.
+    # TODO: Simplify this logic.
+    if
+        test -z "$(
+                git config --local --get remote.origin.url \
+                | sed -n "/github\.com[:\/]rzjnzk\/${_repository_base__name}/ p"
+            )"
+    then
+        if
+            test -d "${HOME}/.git"
+        then
+            printf "%s\n" "Error: Home dir is a git repository, but the remote is incorrect." 1>&2
+            exit 1
+        fi
+
+        # TODO: Make installation logic more robust.
+        # TODO: Consider automating the download and use of the `pkm` script.
+        if
+            ! which git > /dev/null
+        then
+            if
+                which apt-get > /dev/null \
+                && printf "Attempting to install \`git\` via \`apt-get\` ...\n" \
+                && sudo apt-get update \
+                && sudo apt-get install -y git
+            then
+                printf "Successfully installed \`git\` via \`apt-get\`.\n"
+            elif
+                printf "Failed to install \`git\` via \`apt-get\`.\n" \
+                && curl -sS https://webi.sh/git | sh
+            then
+                printf "Successfully installed \`git\` via \`webi.sh\`.\n"
+            else
+                printf "Failed to install \`git\` via \`webi.sh\`.\n"
+                printf "Error: Failed to install \`git\` automatically. If it is already installed, add it to the \`PATH\` environment variable, otherwise, install it manually, then rerun this script.\n" 1>&2
+                exit 1
+            fi
+        fi
+
+        test -d "/tmp/${_repository_base__name}" \
+        && rm -vrf "/tmp/${_repository_base__name}"
+
+        # Clone only the first commit of the repository and its submodules.
+        git clone --recursive --depth 1 "${_repository_base__url}" "/tmp/${_repository_base__name}"
+
+        _backup_dir="./${_repository_base__name}-backups/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC"
+        mkdir -p -- "${_backup_dir}"
+
+        # TODO: `-b` is not posix-compliant.
+        mv -fb "/tmp/${_repository_base__name}/${_script_name}" "${HOME}"
+
+        for \
+            _node in $(ls -A1 "/tmp/${_repository_base__name}")
+        do
+            # Backup home dir nodes that name match temp-repo nodes.
+            test -e "${_node}" \
+            && mv -- "${_node}" "${_backup_dir}/${_node}"
+            
+            # Move temp-repo nodes into home dir.
+            mv -n "/tmp/${_repository_base__name}/${_node}" "${_node}"
+        done
+
+        rm -vrf "/tmp/${_repository_base__name}"
+    fi
+
+    # Specify git hooks path. This is required for automatic encrypt and decrypt scripts.
+    git config --local core.hooksPath "${HOME}/home.d/.githooks" || :
+
+    # Decrypt.
+    sh "./home.d${_repository_base__name}-private/pggset" decrypt
+
+    # Update gitconfig aliases.
+    # TODO: consider hardcoding current scripts and removing this logic.
+    for \
+        _item in $(ls "${HOME}/.gitconfig.user.d/.gitaliases")
+    do
+        if
+            test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_item}"
+        then
+            git config --global "alias.${_item}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
+            printf "%s\n" "${_item}"
+        fi
+    done
+
+    . "${HOME}/.profile"
+}
+
+_read_confirmation()
+{
+    printf "%s" "Are you sure you want to perform this action? (y/N) "
+    read _user_input
+
+    if
+        test "${_user_input}" != y \
+        && test "${_user_input}" != Y
+    then
+        printf "%s\n" "Aborted."
+        exit
+    fi
+}
+
+# _shred_temp()
+# {
+#     _read_confirmation
+
+#     for \
+#         _dir in "${HOME}/.cache"
+#     do
+#         find "${_dir}" -type f -exec shred -vzu {} + || :
+#     done
+
+#     for \
+#         _file in \
+#             ".bash_history" \
+#             ".node_repl_history" \
+#             ".vim/.netrwhist" \
+#             ".viminfo" \
+#             ".lesshst" \
+#             ".bzr.log"
+#     do
+#         shred -vzu -- "${_file}" || :
+#     done
+
+#     for \
+#         _file_name in .*.swp
+#     do
+#         find "${HOME}" -type f -name "${_file_name}" -exec shred -vzu {} +
+#     done
+# }
+
+# _shred_priv()
+# {
+#     _read_confirmation
+#     # WORNING: Ensure the home root dir is never included in this list.
+#     for \
+#         _dir in \
+#             "${HOME}/.gnupg" \
+#             "${HOME}/.ssh"
+#     do
+#         find "${_dir}" -type f -exec shred -vzu {} + || :
+#     done
+
+#     for \
+#         _file in \
+#             ".gitconfig" \
+#             ".config/hub"
+#     do
+#         shred -vzu -- "${_file}" || :
+#     done
+# }
+
+# _shred_home()
+# {
+#     _read_confirmation
+#     printf "%s\n" "This action will shred all data in the \`${HOME}\` directory."
+#     _read_confirmation
+#     read _user_input
+#     find "${HOME}" -type f -exec shred -vzu {} + || :
+# }
+
+_push()
+{
+    git add -A
+    git commit --edit --signoff --status --verbose
+    git push origin master
+}
+
+_pull()
+{
+    git pull origin master
+}
+
+# Ensure the `HOME` environment variable is set.
+if
+    test -z "${HOME}"
+then
+    printf "%s\n" "Error: The \`HOME\` environment variable is not set." 1>&2
+    exit 1
+fi
+
+# TODO: Consider storing paths to files/dirs in `home.d/shred/temp` or `home.d/shred/priv`.
+# if
+#     test "${1}" = "shred"
+# then
+#     if
+#         test "${2}" = "temp"
+#     then
+#         _shred_temp
+#     elif
+#         test "${2}" = "priv"
+#     then
+#         _shred_priv
+#     elif
+#         test "${2}" = "home"
+#     then
+#         _shred_home
+#     fi
+# elif
+
+# If there are no args, print help text.
+if
+    test "${#}" -eq 0
+then
+    _print_help
+elif
+    test "${1}" = "decr"
+then
+    sh "home.d/${_repository_base__name}-private/pggset" decrypt
+elif
+    test "${1}" = "encr"
+then
+    sh "home.d/${_repository_base__name}-private/pggset" encrypt
+elif
+    test "${1}" = "chpa"
+then
+    sh "home.d/${_repository_base__name}-private/pggset" change-passphrase
+elif
+    test "${1}" = "install"
+then
+    _install
+elif
+    test "${1}" = "push"
+then
+    _push
+elif
+    test "${1}" = "pull"
+then
+    _pull
+fi
+
+
+
+

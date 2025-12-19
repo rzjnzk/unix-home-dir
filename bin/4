@@ -1,0 +1,9 @@
+#!/bin/sh
+
+printf "%s\n" "Script 4 sending:" \
+    "" \
+    "--verbose -v --array hello world foo barr -- test" \
+    "" \
+    ""
+
+"${HOME}/bin/5" --verbose -v --array hello world foo barr -- test

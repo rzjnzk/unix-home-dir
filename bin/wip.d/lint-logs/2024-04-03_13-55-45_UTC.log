@@ -1,0 +1,129 @@
+
+In gitm line 133:
+trap _sigint SIGINT || :
+             ^----^ SC2039: In POSIX sh, prefixing signal names with 'SIG' is undefined.
+
+
+In gitm line 139:
+    printf "Checking whether \`${HOME}/.local/bin\` is in the \`PATH\` environment variable ...\n"
+           ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 142:
+        printf -- "${PATH}" | grep -qF -- "${HOME}/.local/bin"
+                  ^-------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 145:
+        printf -- "\`${HOME}/.local/bin\` is already in the \`PATH\` environment variable.\n"
+                  ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 147:
+        printf -- "Adding \`${HOME}/.local/bin\` to the \`PATH\` environment variable ...\n"
+                  ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 149:
+        printf -- "\`${HOME}/.local/bin\` added to the \`PATH\` environment variable.\n"
+                  ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 158:
+            printf "Installing \`${_command}\` ...\n"
+                   ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 186:
+            printf "Installing \`${_extension}\` \`gh\` extension ...\n"
+                   ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 191:
+                printf "Success: \`${_extension}\` \`gh\` extension installed.\n"
+                       ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 195:
+                printf "Error: \`${_extension}\` \`gh\` extension failed to install.\n"
+                       ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 204:
+            printf "\`${_extension}\` extension is already installed.\n"
+                   ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 225:
+    test -z "$(printf -- "${GITM_DIR_REPOSITORIES}")"
+                         ^------------------------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 233:
+test -d "${GITM_DIR_REPOSITORIES}" || printf -- "${GITM_DIR_REPOSITORIES} is not a valid directory, please create it manually.\n"
+                                                ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 253:
+    _selection="$(printf -- "${_selection}" | sed "s/ //g; y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/")"
+                            ^-------------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 258:
+        && ! printf -- "${_selection}" | grep -q "^[0-9][0-9]*$"
+                       ^-------------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 265:
+            printf -- "${_prompt}" \
+                      ^----------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 276:
+            || ! printf -- "${_selection}" | grep -q "^[0-9][0-9]*$" \
+                           ^-------------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 277:
+            || test "$(printf -- "${_selection}" | sed -n "$=")" -ne 1
+                                 ^-------------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 288:
+    printf -- "${_prompt}"
+              ^----------^ SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 302:
+    read _selection
+    ^--^ SC2162: read without -r will mangle backslashes.
+
+
+In gitm line 402:
+                printf -- "\`${_create_repository__template}\`. Repository's default branch will be used as a template.\n"
+                          ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 408:
+                printf -- "\`${_create_repository__template}\`. Repository's default branch code will be copied to new repository.\n"
+                          ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 411:
+                printf -- "Error: \`${_repository_owner}/${_create_repository__template}\` is not a repository.\n"
+                          ^-- SC2059: Don't use variables in the printf format string. Use printf "..%s.." "$foo".
+
+
+In gitm line 456:
+        _description=
+        ^----------^ SC2034: _description appears unused. Verify use (or export if used externally).
+
+
+In gitm line 738:
+            test "${_is_delete_repository__local}" = true && rm -rfv "${GITM_DIR_REPOSITORIES}/${_delete_reposiory__name}"
+                                                                     ^-- SC2115: Use "${var:?}" to ensure this never expands to / .
+
+For more information:
+  https://www.shellcheck.net/wiki/SC2034 -- _description appears unused. Veri...
+  https://www.shellcheck.net/wiki/SC2039 -- In POSIX sh, prefixing signal nam...
+  https://www.shellcheck.net/wiki/SC2115 -- Use "${var:?}" to ensure this nev...

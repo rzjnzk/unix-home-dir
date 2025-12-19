@@ -1,0 +1,16 @@
+#!/bin/sh
+
+eval "$(
+    printf "%s\n" "_tttest=\"hello world\""
+
+    # case \
+    #     "${1}"
+    # in
+    #     --verbose)
+    #         printf "%s\n" "_tttest=\"${_tttest} foo\""
+    #         ;;
+    #     --array)
+    #         printf "%s\n" "_tttest=\"${_tttest} bar\""
+    #         ;;
+    # esac
+)"

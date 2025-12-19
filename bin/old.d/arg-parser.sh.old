@@ -1,0 +1,299 @@
+#!/bin/sh
+
+set -e
+
+if
+    test -z "${1}"
+then
+    printf "%s\n" "Error: Argument parser recieved no arguments." >&2
+    exit 1
+fi
+
+# How can I write a highly portable implementation of a shell script argument parser that I can source and use in my scripts? 
+
+# It should be able to parse all common command argument conventions.
+
+# All the arguments before the first flag should be stored in a single variable.
+
+# Flag arguments like `--some-flag="some val"`, `--some-flag "some val"`, or `-s "some val"` should store `some val` in a variable. But, in specific cases, `--some-flag` and `-s` are standalone, and the following args are parsed seperately. Standalone flags like `-s` should be able to be conbined like `-sfv` and may or may not apply to following args. 
+
+# `--` should signify the end of the flags and so the remaining arguments shoudl be stored in a single variable.
+
+# Use sed only instead of grep and awk.
+
+# TODO: Design logic for a script that can test all aspects of the argument parser.
+
+# TODO: Handle arguments that look like flags but are not.
+
+# GitHub Copilot: In shell scripting, you can use the `eval` command to interpret a string as a command or sequence of commands. This can be used to interpret a string of arguments as separate arguments.
+
+# Here's a simple example:
+
+# ```bash
+# args="\"arg1\" \"arg2 with spaces\" \"arg3\""
+
+# eval "set -- $args"
+
+# for arg; do
+#     echo "[$arg]"
+# done
+# ```
+
+# In this script:
+
+# - `args="\"arg1\" \"arg2 with spaces\" \"arg3\""` sets a variable `args` to a string of arguments.
+# - `eval "set -- $args"` interprets the string of arguments as separate arguments and sets them as the positional parameters (`$1`, `$2`, etc.).
+# - `for arg; do echo "[$arg]"; done` iterates over the positional parameters and prints each one in square brackets.
+
+# This script will print:
+
+# ```
+# [arg1]
+# [arg2 with spaces]
+# [arg3]
+# ```
+
+# Please note that `eval` can be dangerous if used with untrusted input, because it interprets its argument as a command, which can lead to code injection vulnerabilities. In this case, it's safe to use `eval` because the input is a hard-coded string of arguments, but in general, you should be very careful when using `eval`.
+
+# Potential usage example:
+
+# TODO: Support non-flag arguments that are not `position`, since the position could be moved with the presence of flags, and not `after-args` or `before-args`.
+# . "${_path_home_bin}/lib.d/arg-parser.sh" \
+#     _is_args is-args \ 
+#     _arg_first position 1 \
+#     _is_verbose flag "-v --verb --verbose" \ #
+#     _is_force flag "-f --force" \
+#     _some_vals flag-vals n "-s --some-flag" \ # `-s val-1 val-2 val-3 -o non-val-1 non-val-2`, `--some-flag val-1 val-2 val-3 -o non-val-1 non-val-2`, `--some-flag=val-1,val-2,val-3 non-val-1`.
+#     _some_vals flag-vals 2 "-s --some-flag" \ # `-s val-1 val-2 non-val-1 -o non-val-2 non-val-3`, `--some-flag val-1 val-2 non-val-1 -o non-val-2 non-val-3`, `--some-flag=val-1,val-2,errornous-val-1 non-val-1`.
+#     _some_val flag-val "-o --other-flag" \ # `-s val-1 non-val-1 non-val-2 -o non-val-3 non-val-4`, `--some-flag val-1 non-val-1 non-val-2 -o non-val-3 non-val-4`, `--some-flag=val-1,val-1,val-1 non-val-1`.
+#     _args_before_flags before-flags \ # `val-1 val-2 \-\-val-3 --some-flag non-val-1 non-val-2 --some-other-flag non-val-3 non-val-4`.
+#     _args_after_flags after-flags \ # `non-val-1 non-val-2 \-\-non-val-3 --some-flag non-val-4 non-val-5 --some-other-flag non-val-3 non-val-4`, `non-val-1 non-val-2 \-\-non-val-3 --some-flag non-val-4 non-val-5 -- --not-a-flag-val-1 val-2 non-val-3`
+#     --args "${@}"
+
+# TODO: Consider this format `flag-vals 2 "-s --some-flag"` _some_vals.
+
+# TODO: Consider abstracting to lib script.
+_is_match()
+{
+    # TODO: If `${2}` contains characters with a special meaning in sed, fuctionality will not be as intended.
+    printf "%s" "${1}" | sed "/${2}/q; q5" > /dev/null
+}
+
+_args__parser=""
+
+_args__parser="${_args__parser}$(
+        printf "%s\n" "123123" "3244" "234234234"
+        )"
+
+# Iterate args until the current arg is `--args`. 
+while
+    test "${1}" != "--args"
+do
+    _args__parser="${_args__parser}$(
+        printf "%s\n" "${1}" \
+        | sed "s/\\\\u200B/\\\\\\\\u200B/g" \
+        | while
+            IFS="" read -r _line
+        do
+            printf "%s\\u200B" "${_line}"
+        done
+
+        printf "\n"
+    )"
+
+    _args__parser="${_args__parser}$(printf "%s" "${1}" | sed 's/\\n/\\u200B/g')"
+    _args__parser="${_args__parser}$(printf "\n")"
+
+    if
+        test "${#}" -gt 1
+    then
+        shift
+    else
+        break
+    fi
+done
+
+printf "_args__parser: %s\n" "${_args__parser}"
+
+# /home/user/bin/lib.d/arg-parser.sh: 96: shift: can't shift that many
+shift
+
+_args__parent_script=""
+
+while
+    test -n "${1}"
+do
+    _args__parent_script="${_args__parent_script}$(
+        printf "%s" "${1}" \
+        | sed "s/\\\\u200B/\\\\\\\\u200B/g" \
+        | while
+            IFS="" read -r _line
+        do
+            printf "%s\\u200B" "${_line}"
+        done
+    )\n"
+
+    shift
+done
+
+printf "%s" "${_args__parser}" \
+| while
+    IFS="" read -r _line
+do
+    _arg=$(printf "%s" "${_line}" | sed "s/\\\\\\\\u200B/\\\\u200B/g")
+
+    printf "%s" "${_arg}"
+done
+
+# printf "%s" "${_args__parser}" \
+# | while IFS="" read -r _line
+# do
+#     _arg="$(printf "%s" "${_line}" | sed "s/^\"\(.*\)\"$/\1/" | sed "s/\\\"/\"/g")"
+#     echo "Argument: ${_arg}"
+# done
+
+# _args__parser=""
+
+# while
+#     test "${1}" != "--args"
+# do
+#     _args__parser="${_args__parser}$(printf "%s\n" "${1}" | sed "s/\"/\\\"/g")\n"
+#     shift 
+# done
+
+# shift
+
+# _args__parent_script=""
+
+# while
+#     test -n "${1}"
+# do
+#     _args__parent_script="${_args__parent_script}$(printf "%s\n" "${1}" | sed "s/\"/\\\"/g")\n"
+#     shift
+# done
+
+# printf "%s" "${_args__parser}" \
+# | while IFS="" read -r _line
+# do
+#     _arg="$(printf "%s" "${_line}" | sed "s/^\"\(.*\)\"$/\1/" | sed "s/\\\"/\"/g")"
+#     echo "Argument: ${_arg}"
+# done
+
+# # TODO: Interpret all arguments before `"${@}"`.
+# while
+#     "${@}"
+# do
+#     if
+#         _is_match "${1}" "^args$"
+#     then
+#         shift
+#         break
+#     fi
+
+#     if
+#         test "${_is_expecting_var_name}" = true
+#     then
+#         _var_name="${1}"
+#         _is_expecting_var_name=false
+#     else
+#         _var_value="${1}"
+#         eval "${_var_name}=\"${_var_value}\""
+#         _is_expecting_var_name=true
+#     fi
+    
+#     if
+#         _is_match "${1}" "^is-args$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^position$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^flag$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^flag-vals$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^before-flags$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^after-flags$"
+#     then
+#         shift
+#     else
+#         shift
+#     fi
+# done
+
+# while
+#     "${@}"
+# do
+#     if
+#         _is_match "${1}" "^--$"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^--"
+#     then
+#         shift
+#     elif
+#         _is_match "${1}" "^-"
+#     then
+#         shift
+#     else
+#         shift
+#     fi
+# done
+
+# parse_args() {
+#     positional_args=""
+#     remaining_args=""
+#     parsing_flags=true
+
+#     while [ "$#" -gt 0 ]; do
+#         case $1 in
+#             --) parsing_flags=false ;;
+#             --*=*)
+#                 varname=$(printf '%s\n' "$1" | sed 's/^--\([^=]*\)=.*$/\1/')
+#                 varvalue=$(printf '%s\n' "$1" | sed 's/^--[^=]*=\(.*\)$/\1/')
+#                 eval "$varname=\"$varvalue\""
+#                 ;;
+#             --*)
+#                 varname=$(printf '%s\n' "$1" | sed 's/^--\(.*\)$/\1/')
+#                 shift
+#                 if [ "$#" -gt 0 ] && [ "$parsing_flags" = true ] && [ "$(printf '%s\n' "$1" | sed 's/^--.*$/match/')" != "match" ]; then
+#                     eval "$varname=\"$1\""
+#                 else
+#                     eval "$varname=true"
+#                     set -- "$@" ""
+#                 fi
+#                 ;;
+#             -*)
+#                 flags=$(printf '%s\n' "$1" | sed 's/^-//; s/\(.\)/\1 /g')
+#                 for flag in $flags; do
+#                     varname="$flag"
+#                     shift
+#                     if [ "$#" -gt 0 ] && [ "$parsing_flags" = true ] && [ "$(printf '%s\n' "$1" | sed 's/^--.*$/match/')" != "match" ]; then
+#                         eval "$varname=\"$1\""
+#                     else
+#                         eval "$varname=true"
+#                         set -- "$@" ""
+#                     fi
+#                 done
+#                 ;;
+#             *)
+#                 if [ "$parsing_flags" = true ]; then
+#                     positional_args="$positional_args $1"
+#                 else
+#                     remaining_args="$remaining_args $1"
+#                 fi
+#                 ;;
+#         esac
+#         shift
+#     done
+# }

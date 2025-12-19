@@ -1,0 +1,26 @@
+# TODO: Edit ignore rules when toolset is ready for release.
+
+# /*
+
+# TODO: Consider the repercussions of making the fork root be the config dir. It would simplify the cloning process of the two repos.
+
+!/.gitignore
+!/README.md
+!/config/
+!/bin/
+
+
+
+
+# Maybe.
+# !/state/u/commit-hash
+# !/state/commit-has
+
+# Maybe link in README.md, since this wont update in the fork.
+# !/.github/FUNDING.yml
+
+# If I can think of a use that cannot be handled in another way.
+# !/.github/workflows/main.yml
+
+# If I need to specify the syntax highlighting of a config file, perhapse there are other uses, though I would prefur to keep the fork as clean as possible.
+# !/.vscode/settings.json

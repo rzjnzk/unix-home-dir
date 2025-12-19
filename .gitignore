@@ -1,44 +1,36 @@
 /*
+
 !/.gitignore
 !/.gitattributes
-!/.gitmodules
+# Not currently used.
+# !/.gitmodules
 !/README.md
 
 !/.profile
+!/.profile.d/
+
 !/.bashrc
 !/.bash_profile
 !/.bash_logout
-!/.env
+!/.hushlogin
 
 !/.vimrc
 
-!/home
-!/home.d/
-/home.d/unix-home-dir-private/
-
-# Unexclude when token encryption in handled.
+# Unexclude when token encryption is handled.
 # !/.gitconfig
 /.gitconfig
 !/.gitconfig.user.d/
-!/.clang-format
 
-!/.profile.d/
-
-!/sh/
 !/bin/
 
-!/.subversion/
-# Dir containing plaintext password store.
-/.subversion/auth/svn.simple/
+# !/.subversion/
+# # Dir containing plaintext password store.
+# /.subversion/auth/svn.simple/
 
-!/.vim/
-
-!/.githooks/
-
-!/.emacs.d/init.el
-!/.emacs.d/README.md
-!/.emacs.d/snippets/
-!/.emacs.d/elisp/
+# !/.emacs.d/init.el
+# !/.emacs.d/README.md
+# !/.emacs.d/snippets/
+# !/.emacs.d/elisp/
 # !/.emacs.d/
 # /.emacs.d/auto-save-list/
 # /.emacs.d/backups/
@@ -48,9 +40,20 @@
 # # Temporary.
 # /.emacs.d/git/
 
-!/resources/
-
 !/data/
 !/notes/
 !/include/
-!/src/
+
+!/.u
+
+!/.shellcheckrc
+
+# !/.local/share/ranger/bookmarks
+
+# Sensitive files.
+# NOTE: Any redundant ignores here are intentional to ensure that the files are not accidentally committed.
+# TODO: Implement encryption logic and version these files using configuration in `${U_DIR}/config/u/remotes`.
+/.git-credentials
+/.netrc
+/.ssh/
+/.npmrc

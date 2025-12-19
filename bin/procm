@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# NAME
+#     procm -
+
+set -e
+
+_t_reset="$(tput sgr0 2> /dev/null)"
+# _t_f_black="$(tput setaf 0 2> /dev/null)"
+# _t_f_red="$(tput setaf 1 2> /dev/null)"
+# _t_f_green="$(tput setaf 2 2> /dev/null)"
+# _t_f_yellow="$(tput setaf 3 2> /dev/null)"
+_t_f_blue="$(tput setaf 4 2> /dev/null)"
+# _t_f_magenta="$(tput setaf 5 2> /dev/null)"
+# _t_f_cyan="$(tput setaf 6 2> /dev/null)"
+# _t_f_white="$(tput setaf 7 2> /dev/null)"
+# _t_dim="$(tput dim 2> /dev/null)"
+
+printf "\n%s\n\n" "${_t_f_blue}+ ps -eo pid,user,comm${_t_reset}"
+
+# Some available columns, see `man ps` to see them all.
+# pid: Process ID
+# ppid: Parent process ID
+# user: User name
+# uid: User ID
+# group: Group name
+# gid: Group ID
+# comm: Command name
+# args: Full command with arguments
+# etime: Elapsed time since the process was started
+# stime: Start time of the process
+# tty: Controlling terminal
+# stat: Process state
+# pcpu: CPU usage (%)
+# pmem: Memory usage (%)
+# rss: Resident Set Size (memory in KB)
+# vsz: Virtual memory size (in KB)
+# lstart: Exact start date and time
+# nice: Nice value
+# pri: Priority
+# time: Cumulative CPU time
+
+ps -eo pid,user,comm || :
+
+printf "\n\n%s\n\n" "${_t_f_blue}+ netstat -tulnp${_t_reset}"
+
+netstat -tunp || :
+
+printf "\n\n%s\n\n" "${_t_f_blue}+ ss -tulnp${_t_reset}"
+
+ss -tunp || :
+
+# REPL, initially prints the help message showing the following REPL commands:
+# help
+# net GREP_FILTER- show processes running on ports
+# all GREP_FILTER - show all prcesses
+# serv, service GREP_FILTER- show all running and non-running services
+# start SERVICE_HERE - start a service
+# stop SERVICE_HERE - stop a service
+# kill - kill a process, by PID, and maybe by name with interactivity if multiple
+# info PID,SERVICE,PORT,ETC

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+\. "${HOME}/bin/7" 
+
+echo $_tttest

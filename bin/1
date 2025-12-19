@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# _script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+_var_1="hello"
+_var_2="world"
+
+. "${HOME}/bin/2"

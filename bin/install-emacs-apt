@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# NAME
+#     install-emacs -
+
+set -e
+
+sudo apt update -y
+sudo apt install -y emacs emacs-gtk

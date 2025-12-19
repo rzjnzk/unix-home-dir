@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# NAME
+#     dockerflush -
+
+set -e
+
+# _script_name="$(basename -- "${0}")"
+# _script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+_t_reset="$(tput sgr0 2> /dev/null)"
+# _t_f_black="$(tput setaf 0 2> /dev/null)"
+# _t_f_red="$(tput setaf 1 2> /dev/null)"
+# _t_f_green="$(tput setaf 2 2> /dev/null)"
+# _t_f_yellow="$(tput setaf 3 2> /dev/null)"
+_t_f_blue="$(tput setaf 4 2> /dev/null)"
+# _t_f_magenta="$(tput setaf 5 2> /dev/null)"
+# _t_f_cyan="$(tput setaf 6 2> /dev/null)"
+# _t_f_white="$(tput setaf 7 2> /dev/null)"
+# _t_dim="$(tput dim 2> /dev/null)"
+
+printf "\n%s\n\n" "${_t_f_blue}+ sudo docker builder prune -af${_t_reset}"
+
+# Remove all build cache.
+sudo docker builder prune -af
+
+printf "\n\n%s\n\n" "${_t_f_blue}+ sudo docker image prune -af${_t_reset}"
+
+# Removes all unused images.
+sudo docker image prune -af
+
+printf "\n\n%s\n\n" "${_t_f_blue}+ sudo docker system prune -af${_t_reset}"
+
+sudo docker system prune -af
+
+printf "\n"
+
+for \
+    _file in docker-compose.*.yml
+do
+    if
+        test -f "${_file}"
+    then
+        printf "%s\n\n" "${_t_f_blue}+ sudo docker compose -f \"${_file}\" down -v --remove-orphans${_t_reset}"
+
+        sudo docker compose -f "${_file}" down -v --remove-orphans
+
+        printf "\n"
+    fi
+done

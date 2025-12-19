@@ -1,0 +1,1300 @@
+#!/bin/sh
+#
+# NAME
+#     u - install and manage rzjnzk's personal unix system configuration
+#
+# DESCRIPTION
+#
+# DEPENDENCIES
+#     - POSIX-compliant shell.
+#
+# AUTHORS
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+#
+# NOTES
+#     Main Repository: <https://github.com/rzjnzk/unix-home-dir>
+
+# TODO: Consider outsourcing logic to `~/bin` and `~/bin/lib.d` scripts. Attempt to find the relevent scripts in their expected install locations, and if they are not found, then download them from the main repository. Support usage of this script by piping the downloaded file to `sh` for users that dont want to install the full `unix-home-dir`, in which case, dependancy scripts should be used without saving to disk, or by saving to a conventional temp dir with full conflict prevention. This could also be the default behaviour for regular installation, though it would could network usage, though perhapse negligably, making script usage less confusing. Support temporary usage of any `~/bin` script thought an argument of this script: download and pipe this script to `sh`, then do the same inside this script.
+# TODO: Refactor for maximum backwards compatibility. The user should be able to use this script from their outdated install or by downloading and executing it from the main repository.
+# TODO: Consider alternative names: `h` (1 gh repo uses this https://github.com/hypothesis/h), base, layor, stacked, stack, modular, manager, managed, sync, setup, config, auto, extensible, kit, stack, builder, tool, util, homedown, cfg.
+
+# TODO: Script name ideas:
+# github-h
+# h-github
+# h-tool
+# githubh
+# hgithub
+# unix-h
+# projh
+# hscript
+# scripth
+# shellh
+# hposix
+# posixh
+# unixh
+# remoteh
+# rawh
+# j
+# unix-unification-*
+# unified-*
+# unification-*
+# unify-*\
+#
+# BEST SINGLE LETTER OPTIONS
+# NOTE: 
+# NOTE: If the script-name is already a valid command for the user, for example, `h` being aliased to `history`, an interactive selection could be shown during installation rectify this: option 1, the script is invoked by the script-name as is intended, and the preexisting command is changed to be invoked by a user-provided alternative; option 2, the script is invoked by a user-provided name instead of the script-name as intended, and the preexisting command remains. Information should be printed that explains how to switch to whichever option of the two was not selected at a later time if the user changes their mind. 
+# j - jump
+#    (BEST ergonomically, and name-collision avoidance.)
+#    (since the core concept is 'jumping' between unix systems, or reinstallations, etc.)
+# h - help / home / hub 
+#     (BEST for beginners.)
+#     (DECENT for neumonic association, and ergonomically.)
+#     (Since the toolset makes things more simple and automated this toolset appeals to beginners, and as such: `h` for home, hub, or especially help, is an easy to remember name and can be stumbled upon by accident if forgotten. Though this point is made atleast partly redundant if we make the existing `help` command output its usual output followed by this scripts help output with clear titles for each)
+# u - unix / user / unified / utils / micro
+#     (BEST for neumonic association, name-collision avoidance.)
+#     (DECENT ergonomically.)
+#     (`u` is the single letter that is likely the most neumonically associable of the acceptable single letters)
+
+
+
+set -e
+
+_script_name="$(basename -- "${0}")"
+
+# TODO: Consider whether this would be accurate if executed via download, perhapse a hardcoded fallback is required.
+_script_path="$(cd -- "$(dirname -- "${0}")" && pwd)"
+
+# if
+#     test -n "${_script_args}" \
+#     && test -n "$(printf "%s" ${_script_args} | sed -n "/^--help$/pq; /^-h$/pq")"
+# then
+#     sed -n \
+#         "
+#             3,/^$/
+#             {
+#                 s/^# //g
+#                 s/^#//g
+#                 p
+#             }
+#         " \
+#         "${_script_path}/${_script_name}"
+
+#     exit
+# fi
+
+_repository_base__username="rzjnzk"
+_repository_base__name="unix-home-dir"
+_repository_base__url="https://github.com/rzjnzk/unix-home-dir"
+_repository_base_url_raw="https://raw.githubusercontent.com/rzjnzk/unix-home-dir"
+
+# TODO: Replace all hardcoded instances of `master`. Consider doing the same for any neighbouring hardcoded values to increase maintainability. Performance enhancments can be mad later if they are so required.
+_repository_deployment_branch="master"
+
+_script_path_repo="bin/${_script_name}"
+
+_indent="    "
+
+_ensure_git()
+{
+    # Attempt to install `git` if not available.
+    # TODO: Make `git` installation logic more robust.
+    # TODO: Consider automating the download and use of the `pkm` script.
+    if
+        ! which git > /dev/null 2>&1
+    then
+        if
+            which apt-get > /dev/null 2>&1 \
+            && printf "Attempting to install \`git\` via \`apt-get\` ...\n" \
+            && sudo apt-get update \
+            && sudo apt-get install -y git
+        then
+            printf "Successfully installed \`git\` via \`apt-get\`.\n"
+        elif
+            printf "%s\n" \
+                "Failed to install \`git\` via \`apt-get\`." \
+                "Attempting to install \`git\` via \`webi.sh\` using \`curl\` ..." \
+            && curl -sS "https://webi.sh/git" | sh
+        then
+            printf "Successfully installed \`git\` via \`webi.sh\`.\n"
+        elif
+            printf "%s\n" \
+                "Failed to install \`git\` via \`webi.sh\` using \`curl\`." \
+                "Attempting to install \`git\` via \`webi.sh\` using \`wget\` ..." \
+            && wget -qO- "https://webi.sh/git" | sh
+        then
+            printf "Successfully installed \`git\` via \`webi.sh\`.\n"
+        else
+            printf "Failed to install \`git\` via \`webi.sh\` using \`wget\`.\n"
+            printf "Error: Failed to install \`git\` automatically. If it is already installed, add it to the \`PATH\` environment variable. Otherwise, install it manually, then rerun this command.\n" 1>&2
+            exit 1
+        fi
+    fi
+}
+
+# Get a scripts description.
+# Get the text from the line after the line starting with `# NAME` followed by any amount of spaces, extract only the text after the last occurence of ` - `.
+_get_script_description()
+{
+    sed -n \
+        "
+            /^# NAME *$/ \
+            {
+                n;
+
+                / - / \
+                {
+                    s/^.* - //p;
+                }
+            }
+        " \
+        "${1}" 2> /dev/null
+}
+
+# TODO: Consider moving to a printable comment structure at the top of this file, colorisation and dynamic content could be done with tput command substitution evaluated directly in the comment. Consider how to handle help text for other bin scripts when executing via download. Perhapse the a man file can be downloaded in the same transient way to be viewed temporarily, meaning I could do the same for this script if man files support dynamic content. This command substitution could be used in all bin executable scripts for the script name specifically.
+_print_help()
+{
+    tput setaf 6
+    printf "NAME\n"
+    tput sgr0
+
+    # DESCRIPTION
+    #     A syntax highlighted and more verbose ls alternative.
+    # 
+
+    # Print the script name and description.
+    tput setaf 2
+    printf "%s" "${_indent}${_script_name}"
+    tput dim
+    printf " - "
+    printf "%s\n\n" "$(_get_script_description "${_script_path}/${_script_name}")"
+    tput sgr0
+
+    tput setaf 6
+    printf "COMMANDS\n"
+    tput sgr0
+
+    printf "%s\n\n" "${_indent}e, -e, --execute"
+    
+    # printf "%s\n" \
+    #     "${_indent}These subcommands can be invoked directly if \`${_repository_base__name}\` is installed." \
+    #     "${_indent}These subcommands cannot be invoked directly if \`${_script_name}\` is being executed via download."
+    
+    # TODO: Improve english.
+    # TODO: Consider describing that 'The following executables' are executable files in `${HOME}/bin`.
+    # TODO: Executing via download?
+    tput setaf 4
+    printf "%s\n" \
+        "${_indent}${_indent}The following executables can be invoked directly if \`${_repository_base__name}\` is installed." \
+        "${_indent}${_indent}Otherwise, the executable name must be passed as an argument to \`${_script_name}\` for execution:" \
+        "${_indent}${_indent}${_indent}... transiently from a download stream:" \
+        "${_indent}${_indent}${_indent}${_indent}Example: \`curl -sSL \"${_repository_base_url_raw}/${_repository_deployment_branch}/bin/${_script_name}\" | sh -s -- e EXECUTABLE_NAME_HERE\`." \
+        "${_indent}${_indent}${_indent}${_indent}Example: \`wget -qO- \"${_repository_base_url_raw}/${_repository_deployment_branch}/bin/${_script_name}\" | sh -s -- e EXECUTABLE_NAME_HERE\`." \
+        "${_indent}${_indent}${_indent}... or if the script file is removed from the expected directory:" \
+        "${_indent}${_indent}${_indent}${_indent}Example: \`curl -sSL \"${_repository_base_url_raw}/${_repository_deployment_branch}/bin/${_script_name}\" | sh -s -- EXECUTABLE_NAME_HERE\`." \
+        "${_indent}${_indent}${_indent}${_indent}Example: \`wget -qO- \"${_repository_base_url_raw}/${_repository_deployment_branch}/bin/${_script_name}\" | sh -s -- EXECUTABLE_NAME_HERE\`." \
+        "${_indent}${_indent}${_indent}All arguments following \`EXECUTABLE_NAME_HERE\` are passed to the executable."
+    
+    printf "\n"
+    
+    tput sgr0
+
+    # TODO: Handle symlinks more gracefully. Currently there will be duplicate output descriptions with different command names so they could be seperated and not obviously the same script without noticing the description matches.
+    for \
+        _path in "${HOME}/bin/"*
+    do
+        _file_name="$(basename -- "${_path}")"
+
+        # Skip listing this script since the description has already been printed.
+        if
+            test "${_file_name}" = "${_script_name}"
+        then
+            continue
+        fi
+
+        # Skip if the path is not an executable file.
+        # TODO: Consider `! test -f "${_path}"`.
+        if
+            test -d "${_path}" \
+            || ! test -x "${_path}"
+        then
+            continue
+        fi
+
+        _comment_section_name_description="$(_get_script_description "${_path}")"
+
+        if
+            test -n "${_comment_section_name_description}"
+        then
+            # Print the script name.
+            printf "%s" "${_indent}${_indent}$(basename "${_path}")"
+
+            # Print the script description.
+            tput dim
+            printf " - "
+            printf "%s\n" "${_comment_section_name_description}"
+            tput sgr0
+        fi
+
+        # # If the script has a name comment, and it is not blank.
+        # if
+        #     # test -n "$(printf "%s" "${_comment_section_name}" | sed "/[^ \\t]/p")"
+        #     test -n "${_comment_section_name}"
+        # then
+        #     printf "%s\n" "${_comment_section_name}"
+        # else
+        #     printf "%s\n" "$(basename "${_script}")"
+        # fi
+    done
+
+    # DEPENDENCIES
+    #     - POSIX-compliant shell.
+
+    # AUTHOR
+    #     Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+
+    # NOTES
+    #     Main Repository: <https://github.com/rzjnzk/unix-home-dir>
+    tput setaf 6
+    printf "\nREPOSITORY\n"
+    tput sgr0
+    printf "%s\n" "${_indent}${_repository_base__url}"
+}
+
+# TODO: Consider supporting other remotes, such as GitLab, Bitbucket, and the following.
+# TODO: Gitea – A self-hosted lightweight Git service, popular for small teams and open source projects.
+# TODO: Gogs – Another self-hosted Git service with a focus on simplicity and minimal resource usage.
+# TODO: SourceForge – One of the older hosting platforms, still used for some open source projects.
+# TODO: AWS CodeCommit – A managed Git hosting service on AWS.
+# TODO: Azure Repos (part of Azure DevOps) – Providing source control for teams using Microsoft’s ecosystem.
+# TODO: Test.
+# TODO: Handle case where tokens from config files might be malformed, containing the literal characters `\n`, if not already handled.
+_setup()
+{
+    while
+        :
+    do
+        printf "%s\n" \
+            "Select the git host provider for your base config:" \
+            "" \
+            "1. \`github.com\` (recommended) (default)." \
+            "0. Custom."
+
+        _user_input_host=""
+
+        read -r _user_input_host
+
+        if
+            test -z "${_user_input_host}" \
+            || test -n "$(printf "%s" "${_user_input_credentials}" | sed -n "/^[0-9][0-9]*$/p")"
+        then
+            break
+        else
+            printf "%s\n\n" "Invalid input. Please enter an integer." 1>&2
+        fi
+    done
+
+    # TODO: Support `${HOME}/.git-credentials` if it is a typical credential directory.
+    if
+        test -z "${_user_input_host}" \
+        || test "${_user_input_host}" = "1"
+    then
+        _github_credentials__get_credential="$(
+            printf "%s\n" "protocol=https" "host=github.com" \
+            | git credential fill \
+            | sed -n \
+                "
+                    /^username=/ \
+                    {
+                        s/^username=//;
+                        h;
+                        d;
+                    }
+
+                    /^password=/ \
+                    {
+                        s/^password=//;
+                        H;
+                        g;
+                        s/\n/,/;
+                        p;
+                        q;
+                    }
+                "
+        )"
+
+        _github_credentials__netrc="$(
+            if
+                test -f "${HOME}/.netrc"
+            then
+                # TODO: There might be tab characters after a key such as `machine`, but the most portable way would be to hardcode a literal tab character.
+                sed -n \
+                "
+                    /^machine \+api\.github\.com$/ \
+                    {
+                        :loop;
+                        n;
+                        /^machine  */q;
+                        
+                        /^login/ \
+                        {
+                            s/^login \+//;
+                            h;
+                        }
+                        
+                        /^password/ \
+                        {
+                            s/^password  *//;
+                            H;
+                            g;
+                            s/\n/,/;
+                            p;
+                            q;
+                        }
+
+                        b loop;
+                    }
+                " \
+                "${HOME}/.netrc"
+            fi
+        )"
+
+        # TODO: Support tab indents. The most portable way would be to hardcode a literal tab character.
+        _github_credentials__gh="$(
+            _user_values_indent="$(
+                sed -n \
+                "
+                    /^github.com:/ \
+                    {
+                        n;
+                        s/^\(  *\).*$/\1/p;
+                        q;
+                    }
+                " \
+                "${HOME}/.config/gh/hosts.yml"
+            )"
+
+            sed -n \
+                "
+                    /^github\.com:/,/^[^ ]/ \
+                    {
+
+                        /^${_user_values_indent}users:/ \
+                        {
+                            :users;
+                            n;
+
+                            /^${_user_values_indent}[^ ]/q;
+
+                            # Assume the line is the username.
+                            /^${_user_values_indent}${_user_values_indent}[^:]*:/ \
+                            {
+                                # Extract the username.
+                                s/^${_user_values_indent}${_user_values_indent}\([^:]*\): */\1/;
+                                
+                                # Append the username to the hold space.
+                                h;
+
+                                :token;
+
+                                # Read the next line, which should contain the token.
+                                n;
+
+                                # Look for the \`oauth_token\` line.
+                                /^${_user_values_indent}${_user_values_indent}${_user_values_indent}oauth_token:[ ]*/ \
+                                {
+                                    # Extract the token.
+                                    s/^${_user_values_indent}${_user_values_indent}${_user_values_indent}oauth_token:[ ]*//;
+
+                                    # Append the token to the hold space, which now contains \`username\noauth_token\`.
+                                    H;
+
+                                    # Copy the hold space into the pattern space.
+                                    g;
+
+                                    # Replace the newline with a comma.
+                                    s/\(.*\)\n\(.*\)/\1,\2/;
+
+                                    p;
+
+                                    # Loop to process remaining lines in the users block.
+                                    b users;
+                                }
+
+                                b token;
+                            }
+                        }
+                    }
+                " \
+                "${HOME}/.config/gh/hosts.yml"
+        )"
+
+        if
+            test -n "${_github_credentials__get_credential}" \
+            || test -n "${_github_credentials__netrc}" \
+            || test -n "${_github_credentials__gh}"
+        then
+            _print_selection_credential_source()
+            {
+                for \
+                    _line in ${1}
+                do
+                    _count_options="$(expr "${_count_options}" + 1)"
+
+                    _username="$(printf "%s" "${_line}" | sed -n "s/^\(.*\),..*$/\1/p")"
+                    
+                    if
+                        test -n "${_username}"
+                    then
+                        printf "%s\n" "${_count_options}. ${_username} (source: \`${2}\`)."
+                    fi
+                done
+            }
+
+            while
+                :
+            do
+                # TODO: Explain that multiple users of the same name are shown incase they have different PAT's, and one might be preferable for the user over another.
+                printf "%s\n" \
+                    "Found configured \`github.com\` credentials." \
+                    "" \
+                    "Select credential source:" \
+                    ""
+
+                __count_options=0
+
+                _print_selection_credential_source "${_github_credentials__get_credential}" \
+                    "git credential fill"
+
+                _print_selection_credential_source "${_github_credentials__netrc}" \
+                    "~/.netrc"
+                
+                _print_selection_credential_source "${_github_credentials__gh}" \
+                    "~/.config/gh/hosts.yml"
+
+                _count_options=""
+
+                printf "0. Enter manually (default).\n"
+
+                _token_map=$(
+                    printf "%s\n" \
+                        "${_github_credentials__get_credential}" \
+                        "${_github_credentials__netrc}" \
+                        "${_github_credentials__gh}"
+                )
+
+                printf "\n> "
+
+                _user_input_credentials=""
+                read -r _user_input_credentials
+
+                if
+                    test -z "${_user_input_credentials}" \
+                    || test -n "$(printf "%s" "${_user_input_credentials}" | sed -n "/^[0-9][0-9]*$/p")"
+                then
+                    break
+                else
+                    printf "%s\n\n" "Invalid input. Please enter an integer." 1>&2
+                fi
+            done
+
+            _print_selection_credential_source() { : ; }
+        else
+            _user_input_credentials=""
+        fi
+
+        if
+            test -z "${_user_input_credentials}" \
+            || test "${_user_input_credentials}" = 0
+        then
+            # TODO: Support browser redirect authentication in a similar way to `gh auth login`.
+
+            printf "%s\n" \
+                "Hint: Personal Access Token's can be created here: \`https://github.com/settings/tokens\`." \
+                "Hint: The entered Personal Access Token must atleast have the \`public_repo\` scope." \
+                "" \
+                "Enter token: "
+
+            read -r _token
+
+            # TODO: Verify token login and loop back to token entry if unable to login.
+
+            printf "\n"
+        else
+            _username="$(
+                printf "%s\n" "${_token_map}" | sed -n \
+                    "
+                        ${_user_input_credentials} \
+                        {
+                            s/^\(..*\),..*$/\1/p;
+                        }
+                    "
+            )"
+
+            _token="$(
+                printf "%s\n" "${_token_map}" | sed -n \
+                    "
+                        ${_user_input_credentials} \
+                        {
+                            s/^..*,\(..*\)$/\1/p;
+                        }
+                    "
+            )"
+
+            # TODO: Verify token login and loop back to 'Select credential source' if unable to login.
+        fi
+
+        # TODO: Store credentials securly.
+
+        printf "%s\n" "Enter core repository name (default: \`${_repository_base__name}\`): "
+
+        read -r _user_input_fork_name
+
+        printf "\n"
+
+        if
+            test -z "${_user_input_fork_name}"
+        then
+            _user_input_fork_name="${_repository_base__name}"
+        fi
+
+        # TODO: Prompt for visibility, possibly including the third type.
+        # TODO: Consider other repository configuration prompts.
+
+        _fork_post_url="https://api.github.com/repos/${_repository_base__username}/${_repository_base__name}/forks"
+
+        # TODO: Check for one of these command before getting this far, and attempt to install one in a similar way as is done with git. This should be done with other core commands with no graceful fallbacks. 
+        if
+            which curl > /dev/null 2>&1
+        then
+            _fork_url="$(curl -s \
+                -X POST \
+                -H "Authorization: token ${_token}" \
+                -H "Accept: application/vnd.github+json" \
+                "${_fork_post_url}" \
+                -d "{\"name\":\"${_user_input_fork_name}\"}" \
+                | sed -n \
+                    "
+                        /\"clone_url\"/ \
+                        {
+                            s/^.*\"clone_url\"[ ]*:[ ]*\"\([^\"]*\)\".*$/\1/p;
+                        }
+                    "
+            )"
+        elif
+            which wget > /dev/null 2>&1
+        then
+            _fork_url="$(wget -qO- \
+                --method=POST \
+                --header="Authorization: token ${_token}" \
+                --header="Accept: application/vnd.github+json" \
+                --header="Content-Type: application/json" \
+                --body-data="{\"name\":\"${_user_input_fork_name}\"}" \
+                "${_fork_post_url}" \
+                | sed -n \
+                    "
+                        /\"clone_url\"/ \
+                        {
+                            s/^.*\"clone_url\"[ ]*:[ ]*\"\([^\"]*\)\".*$/\1/p;
+                        }
+                    "
+            )"
+        else
+            printf "%s\n" "Error: Neither \`curl\` nor \`wget\` are available. Please install one of them and try again." 1>&2
+            exit 1
+        fi
+
+        if
+            test -n "$(printf "%s" "${_fork_url}" | sed -n "/^https:\/\/github\.com\/.*\/${_user_input_fork_name}\.git$/p")"
+        then
+            printf "%s" "Error: Fork URL does not match expected pattern. Please check your token and try again." 1>&2
+            exit 1
+        else
+            printf "%s\n" \
+                "Success: Core repository created." \
+                "Remote URL: \`${_fork_url}\`." \
+                ""
+        fi
+
+        # TODO: Update the forks `README.md` with the correct installation command. Update any other relevent commands and info.
+        # TODO: Update the forks `u` script to include the URL of the forked repository.
+        # TODO: Update any `state/` files.
+
+        # # Variables
+        # GITHUB_TOKEN="your_personal_access_token"
+        # REPO_OWNER="your_username_or_org"
+        # REPO_NAME="your_repo_name"
+        # FILE_PATH="path/to/file.txt"
+        # COMMIT_MESSAGE="Update file via script"
+        # NEW_CONTENT="This is the new content of the file."
+
+        # # Encode the new content in base64
+        # ENCODED_CONTENT=$(printf "%s" "$NEW_CONTENT" | base64)
+
+        # # Get the current file's SHA
+        # FILE_SHA=$(curl -s \
+        #     -H "Authorization: token $GITHUB_TOKEN" \
+        #     -H "Accept: application/vnd.github+json" \
+        #     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH" \
+        #     | sed -n 's/.*"sha": "\([^"]*\)".*/\1/p')
+
+        # # Update the file
+        # curl -s \
+        #     -X PUT \
+        #     -H "Authorization: token $GITHUB_TOKEN" \
+        #     -H "Accept: application/vnd.github+json" \
+        #     -d "{
+        #         \"message\": \"$COMMIT_MESSAGE\",
+        #         \"content\": \"$ENCODED_CONTENT\",
+        #         \"sha\": \"$FILE_SHA\"
+        #     }" \
+        #     "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/contents/$FILE_PATH"
+
+        # TODO: Explain next steps, including local installation, and general utilization.
+    fi
+
+    while
+        :
+    do
+        printf "%s\n" "Install for the current user? (y/N) "
+
+        read -r _user_input
+
+        printf "\n"
+
+        if
+            test "${_user_input}" = "y" \
+            || test "${_user_input}" = "Y"
+        then
+            _install
+
+            break
+        elif
+            test -z "${_user_input}" \
+            || test "${_user_input}" = "n" \
+            || test "${_user_input}" = "N"
+        then
+            printf "%s\n" \
+                "Installation cancelled." \
+                "Hint: Installation instuctions can be viewed in your repositories \`README.md\` file: \`${_fork_url}\`."
+
+            break
+        else
+            printf "%s\n\n" "Invalid input. Please enter \`y\` or \`n\`." 1>&2
+        fi
+    done
+}
+
+# _repository_base__username="rzjnzk"
+# _repository_base__name="unix-home-dir"
+# _repository_base__url="https://github.com/rzjnzk/unix-home-dir"
+# _repository_base_url_raw="https://raw.githubusercontent.com/rzjnzk/unix-home-dir"
+
+# _repository_deployment_branch="master"
+# _script_path_repo="bin/${_script_name}"
+
+# TODO: Handle every possible error that could occur during installation by prompting the user to fix any issues that require manual intervention, then exit the script. Handle interactive intervention if possible.
+_install()
+{
+    # \. "${U_DIR}/etc/bashrc" 2> /dev/null
+
+    # export U_DIR="${HOME}/.u"
+    # \. "${U_DIR}/etc/profile"
+
+    
+
+    # while IFS= read -r line; do
+    # # process "$line"
+    # echo "$line"
+    # done < filename
+
+    ## --- PREVIOUS LOGIC BELOW ---
+
+    _install_tmp_dir="/tmp/${_repository_base__name}"
+
+    # Ensure the temp dir does not exist before cloning the repo to it.
+    # NOTE: Testing for the existance of the temp dir is not strictly necessary, however it is checked to ensure robust behaviour.
+    # TODO: Instead, retry multiple times, each time with an appended counter to completely prevent name conflicts.
+    if
+        test -d "${_install_tmp_dir}"
+    then
+        rm -vrf "${_install_tmp_dir}"
+    fi
+
+    # Clone the repo and any submodules to the temp dir.
+    # NOTE: Clone only the first commit of the repo and its submodules to reduce the download size and decrease the time to install.
+    git clone --recursive --depth 1 "${_repository_base__url}" "${_install_tmp_dir}"
+
+    # Create a backup dir for the current home dir files that will be replaced by the installation.
+    _backup_dir="./${_repository_base__name}-backups/$(date --utc +%Y-%m-%d_%H-%M-%S)_UTC"
+
+    mkdir -p -- "${_backup_dir}"
+
+    # Move the copy of this script cloned to the temp dir into the home dir.
+    mv -fb "${_install_tmp_dir}/${_script_path_repo}" "${HOME}/${_script_path_repo}"
+
+    cd "${_install_tmp_dir}"
+
+    for \
+        _path in * .*
+    do
+        # Skip `.` and `..` dirs.
+        if
+            test "${_path}" = "." \
+            || test "${_path}" = ".."
+        then
+            continue
+        fi
+
+        # If the file already exists in the home dir, move the file from the home dir to the backup dir before replacing it.
+        # TODO: Consider interactive diffing of files that already exist in the home dir with files that are in the temp dir so the user can choose between them. First list the files that conflict, then ask the user if they want to replace all, replace none, or diff each file before deciding whether to replace or keep it.
+        # diff --color "$1" "$2" 2>/dev/null \
+        # || diff "$1" "$2"
+        if
+            test -e "${HOME}/${_path}"
+        then
+            mv -- "${HOME}/${_path}" "${_backup_dir}/${_path}"
+        fi
+
+        # Move the file cloned to the temp dir into the home dir.
+        mv "${_install_tmp_dir}/${_path}" "${_path}"
+    done
+
+    rm -vrf "${_install_tmp_dir}"
+
+    # TODO: Set dir and file permissions.
+
+    # # Specify git hooks path. This is required for automatic encrypt and decrypt scripts.
+    # git config --local core.hooksPath "${HOME}/bin/home.d/.githooks" || :
+
+    # # Decrypt.
+    # sh "./bin/home.d${_repository_base__name}-private/pggset" decrypt
+
+    # Update gitconfig aliases.
+    # TODO: consider hardcoding current scripts and removing this logic.
+    cd "${HOME}/.gitconfig.user.d/.gitaliases"
+
+    for \
+        _file in * .*
+    do
+        if
+            test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_file}"
+        then
+            if
+                ! git config --global "alias.${_file}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
+            then
+                printf "%s\n" "Error: Failed to set git alias \`git config --global \"alias.${_file}\" \". \\\"${HOME}/.gitconfig.user.d/.gitaliases\\\"\"\`." 1>&2
+            fi
+        fi
+    done
+
+    \. "${HOME}/.profile"
+
+    printf "%s\n" "Success: Installation complete."
+}
+
+# _read_confirmation()
+# {
+#     printf "%s" "Are you sure you want to perform this action? (y/N) "
+#     read _user_input
+
+#     if
+#         test "${_user_input}" != y \
+#         && test "${_user_input}" != Y
+#     then
+#         printf "%s\n" "Aborted."
+#         exit
+#     fi
+# }
+
+# _push()
+# {
+#     (
+#         cd "${HOME}"
+# 
+#         # Show changes that would be made by the pull.
+#         printf "\nFetching changes ...\n"
+#         printf "+ git fetch origin master"
+#         git fetch origin master
+# 
+#         # Show a diff of incoming changes before pulling.
+#         # printf "\nIncoming changes:\n"
+#         git diff --stat --color origin/master
+#   
+#         git add -A
+#         git commit --edit --signoff --status --verbose
+#         git push origin master
+#     )
+# }
+
+# TODO: Untested. Check for AI errors.
+_push()
+{
+    cd "${HOME}"
+
+    # Check if there are any changes to push.
+    if
+        test -z "$(git status --porcelain 2>/dev/null)"
+    then
+        printf "No local changes to push.\n\n"
+        return 0
+    fi
+
+    # Show status of changes.
+    printf "Repository status:\n"
+    printf "+ git status --short\n"
+    git status --short
+    printf "\n"
+
+    # Show detailed diff of changes.
+    printf "Detailed changes:\n"
+    printf "+ git diff --color HEAD\n"
+
+    if
+        ! git diff --color HEAD 2>/dev/null
+    then
+        printf "+ git diff HEAD\n"
+        git diff HEAD
+    fi
+
+    printf "\n"
+
+    printf "Proceed with push? [y/N/i(interactive)] "
+    read -r _response
+
+    if
+        test "${_response}" = "y" \
+        || test "${_response}" = "Y"
+    then
+        printf "+ git add -A\n"
+
+        if
+            ! git add -A
+        then
+            printf "Error: Failed to stage changes.\n\n" >&2
+
+            return 1
+        fi
+
+        printf "+ git commit --edit --signoff --status --verbose\n"
+
+        if
+            ! git commit --edit --signoff --status --verbose
+        then
+            printf "Error: Commit failed.\n\n" >&2
+
+            return 1
+        fi
+
+        printf "+ git push origin master\n"
+
+        if
+            ! git push origin master
+        then
+            printf "Error: Push failed.\n\n" >&2
+
+            return 1
+        fi
+    elif
+        test "${_response}" = "i" \
+        || test "${_response}" = "I"
+    then
+        printf "Interactive mode:\n"
+        printf "${_indent}[y] stage and commit file\n"
+        printf "${_indent}[n] skip file\n"
+        printf "${_indent}[d] show diff\n"
+        printf "${_indent}[q] quit\n\n"
+
+        _modified_files="$(git status --porcelain | sed 's/^...//g')"
+
+        for \
+            _file in ${_modified_files}
+        do
+            while true
+            do
+                printf "File: \`%s\` [y/n/d/q] " "${_file}"
+
+                read -r _choice
+
+                if
+                    test "${_choice}" = "y" \
+                    || test "${_choice}" = "Y"
+                then
+                    printf "+ git add \"%s\"\n" "${_file}"
+
+                    if
+                        ! git add "${_file}"
+                    then
+                        printf "Error: Failed to stage \`%s\`\n\n" "${_file}" >&2
+                    fi
+                    break
+                elif
+                    test "${_choice}" = "n" \
+                    || test "${_choice}" = "N"
+                then
+                    break
+                elif
+                    test "${_choice}" = "d" \
+                    || test "${_choice}" = "D"
+                then
+                    printf "+ git diff --color HEAD -- \"%s\"\n" "${_file}"
+
+                    if
+                        ! git diff --color HEAD -- "${_file}" 2>/dev/null
+                    then
+                        printf "+ git diff HEAD -- \"%s\"\n" "${_file}"
+                        git diff HEAD -- "${_file}"
+                    fi
+                elif
+                    test "${_choice}" = "q" \
+                    || test "${_choice}" = "Q"
+                then
+                    printf "Interactive push aborted.\n\n"
+
+                    return 0
+                else
+                    printf "Invalid input.\n\n"
+                fi
+            done
+        done
+
+        # Check if any files were staged.
+        printf "+ git diff --cached --quiet\n"
+        
+        if
+            git diff --cached --quiet
+        then
+            printf "No files staged for commit. Push aborted.\n"
+
+            return 0
+        fi
+
+        printf "+ git commit --edit --signoff --status --verbose\n"
+
+        if
+            ! git commit --edit --signoff --status --verbose
+        then
+            printf "Error: Commit failed.\n" >&2
+
+            return 1
+        fi
+
+        printf "+ git push origin master\n"
+        if
+            ! git push origin master
+        then
+            printf "Error: Push failed.\n" >&2
+
+            return 1
+        fi
+    else
+        printf "Push aborted.\n"
+
+        return 0
+    fi
+
+    printf "\nPush completed successfully.\n"
+}
+
+# TODO: Untested. Check for AI errors.
+_pull()
+{
+    cd "${HOME}"
+
+    # Display changes that would be made by the pull.
+    printf "\nFetching changes ...\n"
+    printf "+ git fetch origin master\n"
+
+    if
+        ! git fetch origin master
+    then
+        printf "Error: Failed to fetch changes from remote.\n" >&2
+
+        return 1
+    fi
+
+    # Check if local HEAD is already up to date with remote master
+    printf "+ git diff --quiet HEAD origin/master\n"
+
+    if
+        git diff --quiet HEAD origin/master
+    then
+        printf "No changes detected: Local repository is already up to date with remote.\n"
+
+        return 0
+    fi
+
+    # Show a diff summary of incoming changes from the `origin/master` branch.
+    printf "\nIncoming changes:\n"
+    printf "+ git diff --stat --color origin/master\n"
+
+    if
+        ! git diff --stat --color origin/master 2>/dev/null
+    then
+        printf "+ git diff --stat origin/master\n"
+
+        if
+            ! git diff --stat origin/master
+        then
+            printf "Error: Failed to display diff stats.\n" >&2
+
+            return 1
+        fi
+    fi
+
+    printf "\nProceed with pull? [y/N/i(interactive)] "
+    read -r _response
+
+    if
+        test "${_response}" = "y" \
+        || test "${_response}" = "Y"
+    then
+        printf "+ git pull origin master\n"
+
+        if
+            ! git pull origin master
+        then
+            printf "Error: Git pull failed.\n" >&2
+
+            return 1
+        fi
+    elif
+        test "${_response}" = "i" \
+        || test "${_response}" = "I"
+    then
+        printf "+ git diff --name-only origin/master\n"
+
+        _changed_files="$(git diff --name-only origin/master)"
+
+        printf "\nInteractive mode:\n"
+        printf "${_indent}[y] accept incoming changes\n"
+        printf "${_indent}[n] keep current version\n"
+        printf "${_indent}[d] show diff\n"
+        printf "${_indent}[q] quit\n\n"
+
+        for \
+            _file in ${_changed_files}
+        do
+            while \
+                :
+            do
+                printf "File: \`%s\` [y/n/d/q]] " "${_file}"
+                read -r _choice
+
+                if
+                    test "${_choice}" = "y" \
+                    || test "${_choice}" = "Y"
+                then
+                    printf "+ git checkout origin/master -- \"%s\"\n" "${_file}"
+
+                    if
+                        ! git checkout origin/master -- "${_file}"
+                    then
+                        printf "Error: Failed to checkout \`%s\`\n" "${_file}" >&2
+                    fi
+
+                    break
+                elif
+                    test "${_choice}" = "n" \
+                    || test "${_choice}" = "N"
+                then
+                    break
+                elif
+                    test "${_choice}" = "d" \
+                    || test "${_choice}" = "D"
+                then
+                    printf "+ git diff --color HEAD origin/master -- %s\n" "${_file}"
+
+                    if
+                        ! git diff --color HEAD origin/master -- "${_file}" 2>/dev/null
+                    then
+                        printf "+ git diff HEAD origin/master -- %s\n" "${_file}"
+
+                        git diff HEAD origin/master -- "${_file}"
+                    fi
+                elif
+                    test "${_choice}" = "q" \
+                    || test "${_choice}" = "Q"
+                then
+                    printf "Interactive pull aborted.\n"
+                    
+                    return 0
+                else
+                    printf "Invalid input.\n"
+                fi
+            done
+        done
+    else
+        printf "Pull aborted.\n"
+        
+        return 0
+    fi
+
+    printf "Pull completed successfully.\n"
+}
+
+_remove()
+{
+    tput setaf 1 2> /dev/null
+
+    printf "%s\n" \
+        "This will securely delete all files installed or managed by this script." \
+        "WARNING: THIS IS A DESTRUCTIVE ACTION." \
+    
+    tput sgr0 2 2> /dev/null
+    
+    printf "\nType \`CONFIRM\` to continue, or press \`ENTER\` to abort: "
+
+    read -r _user_input
+
+    if
+        test "${_user_input}" != "CONFIRM"
+    then
+        printf "\n%s\n" "Aborted." 1>&2
+        exit 0
+    else
+        # TODO: Implement `remove` logic.
+        printf "TODO: Implement \`remove\` logic.\n"
+    fi
+}
+
+# Ensure the `HOME` environment variable is set.
+if
+    test -z "${HOME}"
+then
+    printf "%s\n" "Error: The \`HOME\` environment variable is not set." 1>&2
+    exit 1
+fi
+
+if
+    test "${#}" -eq 0 \
+    || test "${1}" = "help" \
+    || test "${1}" = "h" \
+    || test "${1}" = "--help" \
+    || test "${1}" = "-h"
+then
+    _print_help
+elif
+    test "${1}" = "install" \
+    || test "${1}" = "i"
+then
+    _ensure_git
+    _install
+elif
+    test "${1}" = "push"
+then
+    _push
+elif
+    test "${1}" = "pull"
+then
+    _pull
+elif
+    test "${1}" = "remove"
+then
+    _remove
+elif
+    test "${1}" = "setup"
+then
+    _ensure_git
+    _setup
+fi
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk (git credential fill)
+# 2. rzjnzk (~/.netrc)
+# 3. rzjnzk (~/.config/gh/hosts.yml)
+# 4. test1 (~/.config/gh/hosts.yml)
+# 5. test2 (~/.config/gh/hosts.yml)
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk (git credential fill).
+# 2. rzjnzk (~/.netrc).
+# 3. rzjnzk (~/.config/gh/hosts.yml).
+# 4. test1 (~/.config/gh/hosts.yml).
+# 5. test2 (~/.config/gh/hosts.yml).
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk (source: `git credential fill`).
+# 2. rzjnzk (source: `~/.netrc`).
+# 3. rzjnzk (source: `~/.config/gh/hosts.yml`).
+# 4. test1 (source: `~/.config/gh/hosts.yml`).
+# 5. test2 (source: `~/.config/gh/hosts.yml`).
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk (source: git credential fill).
+# 2. rzjnzk (source: ~/.netrc).
+# 3. rzjnzk (source: ~/.config/gh/hosts.yml).
+# 4. test1 (source: ~/.config/gh/hosts.yml).
+# 5. test2 (source: ~/.config/gh/hosts.yml).
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk.
+# - Source: `git credential fill`.
+# 2. rzjnzk.
+# - Source: `~/.netrc`.
+# 3. rzjnzk.
+# - Source: `~/.config/gh/hosts.yml`.
+# 4. test1.
+# - Source: `~/.config/gh/hosts.yml`.
+# 5. test2.
+# - Source: `~/.config/gh/hosts.yml`.
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk.
+#     - Source: `git credential fill`.
+# 2. rzjnzk.
+#     - Source: `~/.netrc`.
+# 3. rzjnzk.
+#     - Source: `~/.config/gh/hosts.yml`.
+# 4. test1.
+#     - Source: `~/.config/gh/hosts.yml`.
+# 5. test2.
+#     - Source: `~/.config/gh/hosts.yml`.
+
+
+
+# Found configured `github.com` credentials.
+
+# Select credential source:
+
+# 1. rzjnzk.
+#     - Source: `git credential fill`.
+
+# 2. rzjnzk.
+#     - Source: `~/.netrc`.
+
+# 3. rzjnzk.
+#     - Source: `~/.config/gh/hosts.yml`.
+
+# 4. test1.
+#     - Source: `~/.config/gh/hosts.yml`.
+
+# 5. test2.
+#     - Source: `~/.config/gh/hosts.yml`.

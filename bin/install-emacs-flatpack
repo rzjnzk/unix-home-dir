@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# NAME
+#     install-emacs-flatpack -
+
+set -e
+
+sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+sudo flatpak update --appstream
+sudo flatpak install flathub org.gnu.emacs
+sudo ln -s /var/lib/flatpak/exports/bin/org.gnu.emacs /usr/local/bin/emacs

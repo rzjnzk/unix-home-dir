@@ -1,0 +1,301 @@
+#!/bin/sh
+
+_github_credentials__get_credential="$(
+    printf "%s\n" "protocol=https" "host=github.com" \
+    | git credential fill \
+    | sed -n \
+        "
+            /^username=/ \
+            {
+                s/^username=//;
+                h;
+                d;
+            }
+
+            /^password=/ \
+            {
+                s/^password=//;
+                H;
+                g;
+                s/\n/,/;
+                p;
+                q;
+            }
+        "
+)"
+
+_github_credentials__netrc="$(
+    if
+        test -f "${HOME}/.netrc"
+    then
+        # TODO: There might be tab characters after a key such as `machine`, but the most portable way would be to hardcode a literal tab character.
+        sed -n \
+        "
+            /^machine \+api\.github\.com$/ \
+            {
+                :loop;
+                n;
+                /^machine  */q;
+                
+                /^login/ \
+                {
+                    s/^login \+//;
+                    h;
+                }
+                
+                /^password/ \
+                {
+                    s/^password  *//;
+                    H;
+                    g;
+                    s/\n/,/;
+                    p;
+                    q;
+                }
+
+                b loop;
+            }
+        " \
+        "${HOME}/.netrc"
+    fi
+)"
+
+# TODO: Support tab indents. The most portable way would be to hardcode a literal tab character.
+_github_credentials__gh="$(
+    _user_values_indent="$(
+        sed -n \
+        "
+            /^github.com:/ \
+            {
+                n;
+                s/^\(  *\).*$/\1/p;
+                q;
+            }
+        " \
+        "${HOME}/.config/gh/hosts.yml"
+    )"
+
+    sed -n \
+        "
+            /^github\.com:/,/^[^ ]/ \
+            {
+
+                /^${_user_values_indent}users:/ \
+                {
+                    :users;
+                    n;
+
+                    /^${_user_values_indent}[^ ]/q;
+
+                    # Assume the line is the username.
+                    /^${_user_values_indent}${_user_values_indent}[^:]*:/ \
+                    {
+                        # Extract the username.
+                        s/^${_user_values_indent}${_user_values_indent}\([^:]*\): */\1/;
+                        
+                        # Append the username to the hold space.
+                        h;
+
+                        :token;
+
+                        # Read the next line, which should contain the token.
+                        n;
+
+                        # Look for the \`oauth_token\` line.
+                        /^${_user_values_indent}${_user_values_indent}${_user_values_indent}oauth_token:[ ]*/ \
+                        {
+                            # Extract the token.
+                            s/^${_user_values_indent}${_user_values_indent}${_user_values_indent}oauth_token:[ ]*//;
+
+                            # Append the token to the hold space, which now contains \`username\noauth_token\`.
+                            H;
+
+                            # Copy the hold space into the pattern space.
+                            g;
+
+                            # Replace the newline with a comma.
+                            s/\(.*\)\n\(.*\)/\1,\2/;
+
+                            p;
+
+                            # Loop to process remaining lines in the users block.
+                            b users;
+                        }
+
+                        b token;
+                    }
+                }
+            }
+        " \
+        "${HOME}/.config/gh/hosts.yml"
+)"
+
+
+
+if
+    test -n "${_github_credentials__get_credential}" \
+    || test -n "${_github_credentials__netrc}" \
+    || test -n "${_github_credentials__gh}"
+then
+    printf "%s\n" \
+        "Found configured \`github.com\` credentials." \
+        "" \
+        "Select credential source:" \
+        ""
+
+    _selection_number=0
+
+    _previous_IFS="${IFS}"
+
+    _print_selection_credential_source()
+    {
+        for \
+            _line in ${1}
+        do
+            _selection_number="$(expr ${_selection_number} + 1)"
+
+            _username="$(printf "%s" "${_line}" | sed -n "s/^\(.*\),..*$/\1/p")"
+            
+            if
+                test -n "${_username}"
+            then
+                printf "%s\n" "${_selection_number}. ${_username} (source: \`${2}\`)."
+            fi
+        done
+    }
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk (git credential fill)
+    # 2. rzjnzk (~/.netrc)
+    # 3. rzjnzk (~/.config/gh/hosts.yml)
+    # 4. test1 (~/.config/gh/hosts.yml)
+    # 5. test2 (~/.config/gh/hosts.yml)
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk (git credential fill).
+    # 2. rzjnzk (~/.netrc).
+    # 3. rzjnzk (~/.config/gh/hosts.yml).
+    # 4. test1 (~/.config/gh/hosts.yml).
+    # 5. test2 (~/.config/gh/hosts.yml).
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk (source: `git credential fill`).
+    # 2. rzjnzk (source: `~/.netrc`).
+    # 3. rzjnzk (source: `~/.config/gh/hosts.yml`).
+    # 4. test1 (source: `~/.config/gh/hosts.yml`).
+    # 5. test2 (source: `~/.config/gh/hosts.yml`).
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk (source: git credential fill).
+    # 2. rzjnzk (source: ~/.netrc).
+    # 3. rzjnzk (source: ~/.config/gh/hosts.yml).
+    # 4. test1 (source: ~/.config/gh/hosts.yml).
+    # 5. test2 (source: ~/.config/gh/hosts.yml).
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk.
+    # - Source: `git credential fill`.
+    # 2. rzjnzk.
+    # - Source: `~/.netrc`.
+    # 3. rzjnzk.
+    # - Source: `~/.config/gh/hosts.yml`.
+    # 4. test1.
+    # - Source: `~/.config/gh/hosts.yml`.
+    # 5. test2.
+    # - Source: `~/.config/gh/hosts.yml`.
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk.
+    #     - Source: `git credential fill`.
+    # 2. rzjnzk.
+    #     - Source: `~/.netrc`.
+    # 3. rzjnzk.
+    #     - Source: `~/.config/gh/hosts.yml`.
+    # 4. test1.
+    #     - Source: `~/.config/gh/hosts.yml`.
+    # 5. test2.
+    #     - Source: `~/.config/gh/hosts.yml`.
+
+
+
+    # Found configured `github.com` credentials.
+
+    # Select credential source:
+
+    # 1. rzjnzk.
+    #     - Source: `git credential fill`.
+
+    # 2. rzjnzk.
+    #     - Source: `~/.netrc`.
+
+    # 3. rzjnzk.
+    #     - Source: `~/.config/gh/hosts.yml`.
+
+    # 4. test1.
+    #     - Source: `~/.config/gh/hosts.yml`.
+
+    # 5. test2.
+    #     - Source: `~/.config/gh/hosts.yml`.
+
+    _selection_number=""
+
+    _print_selection_credential_source "${_github_credentials__get_credential}" \
+        "git credential fill"
+
+    _print_selection_credential_source "${_github_credentials__netrc}" \
+        "~/.netrc"
+    
+    _print_selection_credential_source "${_github_credentials__gh}" \
+        "~/.config/gh/hosts.yml"
+
+    IFS="${_previous_IFS}"
+
+    _token_map=$(
+        printf "%s\n" \
+            "${_github_credentials__get_credential}" \
+            "${_github_credentials__netrc}" \
+            "${_github_credentials__gh}"
+    )
+
+    printf "\n> "
+
+    # echo 1
+    # printf "%s\n" "${_token_map}" | sed -n "1p"
+    # echo 2
+    # printf "%s\n" "${_token_map}" | sed -n "2p"
+    # echo 3
+    # printf "%s\n" "${_token_map}" | sed -n "3p"
+    # echo 4
+    # printf "%s\n" "${_token_map}" | sed -n "4p"
+    # echo 5
+    # printf "%s\n" "${_token_map}" | sed -n "5p"
+fi
+

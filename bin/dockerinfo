@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# NAME
+#     docker-list -
+
+set -e
+
+_t_reset="$(tput sgr0 2> /dev/null)"
+# _t_f_black="$(tput setaf 0 2> /dev/null)"
+# _t_f_red="$(tput setaf 1 2> /dev/null)"
+# _t_f_green="$(tput setaf 2 2> /dev/null)"
+# _t_f_yellow="$(tput setaf 3 2> /dev/null)"
+_t_f_blue="$(tput setaf 4 2> /dev/null)"
+# _t_f_magenta="$(tput setaf 5 2> /dev/null)"
+# _t_f_cyan="$(tput setaf 6 2> /dev/null)"
+# _t_f_white="$(tput setaf 7 2> /dev/null)"
+# _t_dim="$(tput dim 2> /dev/null)"
+
+_print()
+{
+    printf "%s" "${_t_f_blue}+ "
+    printf "%s " "${@}"
+    printf "%s\n\n" "${_t_reset}"
+
+    # printf "%s\n\n" "${_t_f_blue}+ ${@}${_t_reset}"
+
+    eval "${@}"
+}
+
+_print docker ps -as
+printf "\n\n"
+_print docker images
+printf "\n\n"
+_print docker system df -v

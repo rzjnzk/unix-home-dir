@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# NAME
+#   weather - fetch the weather for the city determined by the IP address, or for the specified city or cities
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Robert Zack Jaidyn Norris-Karr <https://github.com/rzjnzk>
+
+set -e
+
+if
+    test -z "${1}"
+then
+    set -- ""
+fi
+
+# Print weather information for the specified city or cities.
+for \
+    _city in "${@}"
+do
+    printf "\n"
+
+    curl -sS "https://wttr.in/${_city}"
+    # | sed \
+        # "
+        #     1 \
+        #     {
+        #         h;
+        #         d;
+        #     }
+
+        #     /^Follow ..* for wttr.in updates/ \
+        #     {
+        #         x;
+        #         d;
+        #     }
+
+        #     x;
+        #     1!p;
+        #     x;
+        #     h;
+        # "
+done

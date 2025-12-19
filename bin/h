@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# NAME
+#     h - print command history, alias for `history` command
+#
+# DESCRIPTION
+#
+# AUTHOR
+#     Copyright (c) Robert Zack Jaidyn Norris-Karr <rzjnzk@gmail.com> <https://github.com/rzjnzk>
+
+set -e
+
+bash -c 'HISTFILE=~/.bash_history; history -r; history' 2>/dev/null && exit
+
+history && exit

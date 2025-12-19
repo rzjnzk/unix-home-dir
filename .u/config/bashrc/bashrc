@@ -1,0 +1,29 @@
+# shellcheck disable=SC2148
+
+# Disable bell sound.
+set bell-style none
+
+bind "set show-all-if-ambiguous on"
+bind "set match-hidden-files on"
+bind "set completion-ignore-case off"
+bind "set mark-symlinked-directories on"
+bind "set show-all-if-unmodified on"
+
+# Display bash completion options vertically.
+bind "set completion-display-width 0"
+
+# Include hidden files in completions. This might also have other effects.
+shopt -s dotglob
+
+# # Enable programmable completion features
+# shopt -s progcomp
+
+# # Include dotfiles in filename completion
+# FIGNORE=''  # Do not exclude any patterns (e.g., no ignore of .files)
+
+# # Ensure hidden files are included by default in tab completion
+# _complete_show_hidden() {
+#     local IFS=$'\n'
+#     COMPREPLY=($(compgen -f -- "$2"))
+# }
+# complete -o default -F _complete_show_hidden cd ls cat rm cp mv

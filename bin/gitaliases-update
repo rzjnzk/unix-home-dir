@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+
+
+cd "${HOME}/.gitconfig.user.d/.gitaliases"
+
+for \
+    _file in * .*
+do
+    if
+        test -f "${HOME}/.gitconfig.user.d/.gitaliases/${_file}"
+    then
+        if
+            ! git config --global "alias.${_file}" ". \"${HOME}/.gitconfig.user.d/.gitaliases\""
+        then
+            printf "%s\n" "Error: Failed to set git alias \`git config --global \"alias.${_file}\" \". \\\"${HOME}/.gitconfig.user.d/.gitaliases\\\"\"\`." 1>&2
+        fi
+    fi
+done
